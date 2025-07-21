@@ -2,6 +2,10 @@ import type { Metadata } from 'next';
 import { Inter as FontSans } from 'next/font/google';
 import { JetBrains_Mono as FontMono } from 'next/font/google';
 import '@/styles/globals.css';
+import { ThemeProvider } from '@/components/providers/theme-provider';
+import { ReactQueryProvider } from '@/components/providers/react-query-provider';
+import { Header } from '@/components/layout/Header';
+import { ResponsiveLayout } from '@/components/layout/ResponsiveLayout';
 
 // Font configuration
 const fontSans = FontSans({
@@ -34,9 +38,13 @@ export default function RootLayout({
           Skip to main content
         </a>
         
-        <div className="relative">
-          {children}
-        </div>
+        <ThemeProvider>
+          <ReactQueryProvider>
+            <ResponsiveLayout header={<Header />}>
+              {children}
+            </ResponsiveLayout>
+          </ReactQueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
