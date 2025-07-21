@@ -59,9 +59,9 @@ const snippetSchema = new Schema<ISnippet, SnippetModel, ISnippetMethods>(
     timestamps: true,
     toJSON: {
       virtuals: true,
-      transform: function(doc, ret) {
-        delete ret.__v;
-        return ret;
+      transform: function(doc, ret: Record<string, any>) {
+        const { __v, ...rest } = ret;
+        return rest;
       },
     },
   }

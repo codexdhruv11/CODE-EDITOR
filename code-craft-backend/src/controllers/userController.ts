@@ -13,25 +13,27 @@ import { logger } from '../utils/logger';
 /**
  * Get current authenticated user profile
  */
-export const getCurrentUser = catchAsync(async (req: Request, res: Response) => {
+export const getCurrentUser = catchAsync(async (req: Request, res: Response): Promise<void> => {
   if (!req.user) {
-    return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+    res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
         message: 'User not authenticated',
         code: ERROR_CODES.UNAUTHORIZED,
       },
     });
+    return;
   }
 
   const user = await User.findById(req.user.id);
 
   if (!user) {
-    return res.status(HTTP_STATUS.NOT_FOUND).json({
+    res.status(HTTP_STATUS.NOT_FOUND).json({
       error: {
         message: 'User not found',
         code: ERROR_CODES.NOT_FOUND,
       },
     });
+    return;
   }
 
   res.status(HTTP_STATUS.OK).json({
@@ -42,26 +44,28 @@ export const getCurrentUser = catchAsync(async (req: Request, res: Response) => 
 /**
  * Update user profile information
  */
-export const updateUser = catchAsync(async (req: Request, res: Response) => {
+export const updateUser = catchAsync(async (req: Request, res: Response): Promise<void> => {
   if (!req.user) {
-    return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+    res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
         message: 'User not authenticated',
         code: ERROR_CODES.UNAUTHORIZED,
       },
     });
+    return;
   }
 
   const { name, email } = req.body;
   const user = await User.findById(req.user.id);
 
   if (!user) {
-    return res.status(HTTP_STATUS.NOT_FOUND).json({
+    res.status(HTTP_STATUS.NOT_FOUND).json({
       error: {
         message: 'User not found',
         code: ERROR_CODES.NOT_FOUND,
       },
     });
+    return;
   }
 
   // Update fields if provided
@@ -85,19 +89,20 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
 /**
  * Get user statistics including execution history and starred snippets
  */
-export const getUserStats = catchAsync(async (req: Request, res: Response) => {
+export const getUserStats = catchAsync(async (req: Request, res: Response): Promise<void> => {
   const { id: userId } = req.params;
 
   // Find user by MongoDB ObjectId
   const user = await User.findById(userId);
 
   if (!user) {
-    return res.status(HTTP_STATUS.NOT_FOUND).json({
+    res.status(HTTP_STATUS.NOT_FOUND).json({
       error: {
         message: 'User not found',
         code: ERROR_CODES.NOT_FOUND,
       },
     });
+    return;
   }
 
   try {
@@ -150,18 +155,19 @@ export const getUserStats = catchAsync(async (req: Request, res: Response) => {
 /**
  * Get user's public profile (limited information)
  */
-export const getUserProfile = catchAsync(async (req: Request, res: Response) => {
+export const getUserProfile = catchAsync(async (req: Request, res: Response): Promise<void> => {
   const { id: userId } = req.params;
 
   const user = await User.findById(userId);
 
   if (!user) {
-    return res.status(HTTP_STATUS.NOT_FOUND).json({
+    res.status(HTTP_STATUS.NOT_FOUND).json({
       error: {
         message: 'User not found',
         code: ERROR_CODES.NOT_FOUND,
       },
     });
+    return;
   }
 
   // Return only public information

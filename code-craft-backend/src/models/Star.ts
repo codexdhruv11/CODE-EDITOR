@@ -36,9 +36,9 @@ const starSchema = new Schema<IStar, StarModel>(
   {
     timestamps: { createdAt: true, updatedAt: false },
     toJSON: {
-      transform: function(doc, ret) {
-        delete ret.__v;
-        return ret;
+      transform: function(doc, ret: Record<string, any>) {
+        const { __v, ...rest } = ret;
+        return rest;
       },
     },
   }

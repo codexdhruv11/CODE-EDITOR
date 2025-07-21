@@ -52,9 +52,9 @@ const snippetCommentSchema = new Schema<ISnippetComment, SnippetCommentModel, IS
   {
     timestamps: true,
     toJSON: {
-      transform: function(doc, ret) {
-        delete ret.__v;
-        return ret;
+      transform: function(doc, ret: Record<string, any>) {
+        const { __v, ...rest } = ret;
+        return rest;
       },
     },
   }
