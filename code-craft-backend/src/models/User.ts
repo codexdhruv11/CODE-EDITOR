@@ -1,8 +1,9 @@
 import mongoose, { Document, Schema } from 'mongoose';
+import bcrypt from 'bcrypt';
 
 export interface IUser extends Document {
-  clerkId: string;
   email: string;
+  password: string;
   name: string;
   createdAt: Date;
   updatedAt: Date;
@@ -11,22 +12,17 @@ export interface IUser extends Document {
 
 export interface IUserMethods {
   isOwnedBy(userId: string): boolean;
+  comparePassword(password: string): Promise<boolean>;
 }
 
 export interface IUserStatics {
-  findByClerkId(clerkId: string): Promise<IUser | null>;
+  findByEmail(email: string): Promise<IUser | null>;
 }
 
 export type UserModel = mongoose.Model<IUser, {}, IUserMethods> & IUserStatics;
 
 const userSchema = new Schema<IUser, UserModel, IUserMethods>(
   {
-    clerkId: {
-      type: String,
-      required: true,
-      unique: true,
-      index: true,
-    },
     email: {
       type: String,
       required: true,
@@ -34,6 +30,11 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
       index: true,
       lowercase: true,
       trim: true,
+    },
+    password: {
+      type: String,
+      required: true,
+      select: false,
     },
     name: {
       type: String,
@@ -54,18 +55,34 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
 );
 
 // Indexes
-userSchema.index({ clerkId: 1 }, { unique: true });
 userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ createdAt: -1 });
 
+// Password hashing middleware
+userSchema.pre('save', async function(next) {
+  if (!this.isModified('password')) return next();
+  
+  try {
+    const salt = await bcrypt.genSalt(12);
+    this.password = await bcrypt.hash(this.password, salt);
+    next();
+  } catch (error) {
+    next(error as Error);
+  }
+});
+
 // Instance methods
 userSchema.methods.isOwnedBy = function(userId: string): boolean {
-  return this.clerkId === userId;
+  return this._id.toString() === userId;
+};
+
+userSchema.methods.comparePassword = async function(password: string): Promise<boolean> {
+  return bcrypt.compare(password, this.password);
 };
 
 // Static methods
-userSchema.statics.findByClerkId = function(clerkId: string) {
-  return this.findOne({ clerkId });
+userSchema.statics.findByEmail = function(email: string) {
+  return this.findOne({ email }).select('+password');
 };
 
 // Custom toJSON method
