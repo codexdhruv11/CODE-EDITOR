@@ -28,6 +28,7 @@ export const API_ENDPOINTS = {
     LIST: (snippetId: string) => `/comments/snippets/${snippetId}/comments`,
     SINGLE: (commentId: string) => `/comments/${commentId}`,
     DETAIL: (id: string) => `/comments/${id}`,
+    FOR_SNIPPET: (snippetId: string) => `/snippets/${snippetId}/comments`,
   },
   STARS: {
     TOGGLE: (snippetId: string) => `/stars/snippets/${snippetId}/stars`,

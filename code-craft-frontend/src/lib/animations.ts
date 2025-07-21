@@ -1,5 +1,16 @@
 'use client';
 
+// ReactBits animations - fallback to custom implementations if package not available
+let fadeIn, slideUp, slideDown, slideLeft, slideRight, scaleIn, staggerContainer, staggerItem, bounceIn, rotateIn;
+
+try {
+  const reactBits = require('@appletosolutions/reactbits');
+  ({ fadeIn, slideUp, slideDown, slideLeft, slideRight, scaleIn, staggerContainer, staggerItem, bounceIn, rotateIn } = reactBits);
+} catch (error) {
+  // Fallback implementations if ReactBits is not available
+  console.warn('ReactBits not available, using fallback animations');
+}
+
 import { useEffect, useState } from 'react';
 import { AnimationVariants } from '@/types/ui';
 import { ANIMATION_PRIORITIES } from './constants';
@@ -25,10 +36,82 @@ export function useReducedMotion(): boolean {
   return prefersReducedMotion;
 }
 
+// Fallback animation variants if ReactBits is not available
+const fallbackAnimations = {
+  fadeIn: {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.4 } }
+  },
+  slideUp: {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.4 } }
+  },
+  slideDown: {
+    hidden: { y: -20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { duration: 0.4 } }
+  },
+  slideLeft: {
+    hidden: { x: 20, opacity: 0 },
+    visible: { x: 0, opacity: 1, transition: { duration: 0.4 } }
+  },
+  slideRight: {
+    hidden: { x: -20, opacity: 0 },
+    visible: { x: 0, opacity: 1, transition: { duration: 0.4 } }
+  },
+  scaleIn: {
+    hidden: { scale: 0.8, opacity: 0 },
+    visible: { scale: 1, opacity: 1, transition: { duration: 0.4 } }
+  },
+  staggerContainer: {
+    hidden: { opacity: 0 },
+    visible: {
+      opacity: 1,
+      transition: {
+        staggerChildren: 0.1,
+        delayChildren: 0.1
+      }
+    }
+  },
+  staggerItem: {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 }
+  },
+  bounceIn: {
+    hidden: { scale: 0, opacity: 0 },
+    visible: { 
+      scale: 1, 
+      opacity: 1, 
+      transition: { 
+        type: "spring", 
+        stiffness: 400, 
+        damping: 10 
+      } 
+    }
+  },
+  rotateIn: {
+    hidden: { rotate: -180, opacity: 0 },
+    visible: { rotate: 0, opacity: 1, transition: { duration: 0.5 } }
+  }
+};
+
+// Export animations (ReactBits if available, fallback otherwise)
+export {
+  fadeIn: fadeIn || fallbackAnimations.fadeIn,
+  slideUp: slideUp || fallbackAnimations.slideUp,
+  slideDown: slideDown || fallbackAnimations.slideDown,
+  slideLeft: slideLeft || fallbackAnimations.slideLeft,
+  slideRight: slideRight || fallbackAnimations.slideRight,
+  scaleIn: scaleIn || fallbackAnimations.scaleIn,
+  staggerContainer: staggerContainer || fallbackAnimations.staggerContainer,
+  staggerItem: staggerItem || fallbackAnimations.staggerItem,
+  bounceIn: bounceIn || fallbackAnimations.bounceIn,
+  rotateIn: rotateIn || fallbackAnimations.rotateIn
+};
+
 /**
- * Base animation variants for Framer Motion
+ * Custom animation variants for Framer Motion (fallback if ReactBits not available)
  */
-export const fadeIn: AnimationVariants = {
+export const fadeInFallback: AnimationVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
