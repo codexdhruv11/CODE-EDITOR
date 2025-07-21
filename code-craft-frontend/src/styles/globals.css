@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 4%;
+    --card: 0 0% 97%;
+    --card-foreground: 240 10% 4%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 4%;
+    --primary: 246 91% 59%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 5% 96%;
+    --secondary-foreground: 240 6% 10%;
+    --muted: 210 20% 98%;
+    --muted-foreground: 215 16% 47%;
+    --accent: 210 20% 98%;
+    --accent-foreground: 222 47% 11%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 240 10% 4%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 246 91% 59%;
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 240 10% 4%;
+    --foreground: 0 0% 97%;
+    --card: 240 10% 10%;
+    --card-foreground: 0 0% 97%;
+    --popover: 240 10% 4%;
+    --popover-foreground: 0 0% 97%;
+    --primary: 246 80% 67%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 4% 16%;
+    --secondary-foreground: 0 0% 97%;
+    --muted: 240 4% 16%;
+    --muted-foreground: 240 5% 65%;
+    --accent: 240 4% 16%;
+    --accent-foreground: 0 0% 97%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --success: 142 69% 58%;
+    --success-foreground: 240 10% 4%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 240 10% 4%;
+    --border: 240 5% 26%;
+    --input: 240 5% 26%;
+    --ring: 246 80% 67%;
+  }
+}
+
+/* Base styles */
+@layer base {
+  * {
+    @apply border-border;
+  }
+  
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  /* Improved focus styles for keyboard navigation */
+  :focus-visible {
+    @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
+  }
+
+  /* Skip navigation link for keyboard users */
+  .skip-nav {
+    @apply sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-background focus:text-foreground focus:outline-none focus:ring-2 focus:ring-primary;
+  }
+
+  /* Responsive typography */
+  h1 {
+    @apply text-2xl font-bold tracking-tight sm:text-3xl md:text-4xl;
+  }
+
+  h2 {
+    @apply text-xl font-bold tracking-tight sm:text-2xl md:text-3xl;
+  }
+
+  h3 {
+    @apply text-lg font-semibold tracking-tight sm:text-xl md:text-2xl;
+  }
+
+  h4 {
+    @apply text-base font-semibold tracking-tight sm:text-lg md:text-xl;
+  }
+
+  p {
+    @apply text-body-main;
+  }
+
+  /* Code editor specific styles */
+  .monaco-editor {
+    @apply rounded-md overflow-hidden;
+  }
+
+  /* Ensure proper contrast for code syntax highlighting in both themes */
+  .dark .monaco-editor {
+    --monaco-foreground: hsl(var(--foreground));
+    --monaco-background: hsl(var(--background));
+  }
+
+  /* Optimize for touch devices */
+  @media (hover: none) and (pointer: coarse) {
+    /* Increase touch target sizes */
+    button, 
+    a, 
+    input[type="checkbox"], 
+    input[type="radio"], 
+    select {
+      @apply min-h-[44px] min-w-[44px];
+    }
+  }
+
+  /* Respect user's motion preferences */
+  @media (prefers-reduced-motion: reduce) {
+    *, 
+    *::before, 
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+/* Component styles */
+@layer components {
+  .card-hover {
+    @apply transition-all duration-300 hover:shadow-md;
+  }
+
+  .responsive-grid {
+    @apply grid grid-cols-1 tablet:grid-cols-2 desktop:grid-cols-3 gap-6;
+  }
+
+  .mobile-bottom-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-background border-t border-border py-2 flex justify-around items-center z-40;
+  }
+
+  /* Adaptive sidebar styles */
+  .adaptive-sidebar {
+    @apply h-full bg-card text-card-foreground;
+    /* Desktop: Fixed sidebar */
+    @apply desktop:w-64 desktop:flex-shrink-0 desktop:border-r;
+    /* Tablet: Overlay sidebar */
+    @apply tablet:fixed tablet:top-0 tablet:left-0 tablet:bottom-0 tablet:w-72 tablet:z-40 tablet:shadow-lg;
+    /* Mobile: Bottom sheet */
+    @apply mobile:fixed mobile:bottom-0 mobile:left-0 mobile:right-0 mobile:h-auto mobile:max-h-[80vh] mobile:rounded-t-lg mobile:z-40 mobile:shadow-lg;
+  }
+
+  /* Mobile code toolbar */
+  .mobile-code-toolbar {
+    @apply fixed bottom-0 left-0 right-0 bg-card border-t border-border p-2 flex items-center justify-between z-30;
+  }
+}
+
+/* Utility styles */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+} 
