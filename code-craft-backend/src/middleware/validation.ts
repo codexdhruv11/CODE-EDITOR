@@ -25,6 +25,35 @@ export const handleValidationErrors = (req: Request, res: Response, next: NextFu
   next();
 };
 
+// Authentication validation
+export const validateRegistration = [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Must be a valid email address'),
+  body('password')
+    .isLength({ min: 8 })
+    .withMessage('Password must be at least 8 characters long')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
+    .withMessage('Password must contain at least one lowercase letter, one uppercase letter, and one number'),
+  body('name')
+    .trim()
+    .isLength({ min: 1, max: 100 })
+    .withMessage('Name must be between 1 and 100 characters'),
+  handleValidationErrors,
+];
+
+export const validateLogin = [
+  body('email')
+    .isEmail()
+    .normalizeEmail()
+    .withMessage('Must be a valid email address'),
+  body('password')
+    .notEmpty()
+    .withMessage('Password is required'),
+  handleValidationErrors,
+];
+
 // User validation
 export const validateUserUpdate = [
   body('name')
