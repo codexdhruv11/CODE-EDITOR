@@ -19,17 +19,18 @@ declare global {
 }
 
 // Authentication middleware using JWT
-export const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
+export const requireAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+      res.status(HTTP_STATUS.UNAUTHORIZED).json({
         error: {
           message: 'Authorization token required',
           code: ERROR_CODES.UNAUTHORIZED,
         },
       });
+      return;
     }
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
@@ -39,12 +40,13 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       
       const user = await User.findById(decoded.userId);
       if (!user) {
-        return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        res.status(HTTP_STATUS.UNAUTHORIZED).json({
           error: {
             message: 'User not found',
             code: ERROR_CODES.UNAUTHORIZED,
           },
         });
+        return;
       }
 
       req.user = {
@@ -54,18 +56,19 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       };
     } catch (jwtError) {
       logger.error('JWT token verification failed:', jwtError);
-      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+      res.status(HTTP_STATUS.UNAUTHORIZED).json({
         error: {
           message: 'Invalid token',
           code: ERROR_CODES.INVALID_TOKEN,
         },
       });
+      return;
     }
 
     next();
   } catch (error) {
     logger.error('Authentication middleware error:', error);
-    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       error: {
         message: 'Authentication failed',
         code: ERROR_CODES.INTERNAL_ERROR,
@@ -75,13 +78,14 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
 };
 
 // Optional authentication middleware for public endpoints that can benefit from user context
-export const optionalAuth = async (req: Request, res: Response, next: NextFunction) => {
+export const optionalAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     const authHeader = req.headers.authorization;
     
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       // No token provided, continue without user context
-      return next();
+      next();
+      return;
     }
 
     const token = authHeader.substring(7);
