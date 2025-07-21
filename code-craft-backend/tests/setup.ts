@@ -1,5 +1,6 @@
 import { MongoMemoryServer } from 'mongodb-memory-server';
 import mongoose from 'mongoose';
+import jwt from 'jsonwebtoken';
 import { config } from '../src/config/env';
 
 // Mock external services
@@ -68,8 +69,8 @@ afterAll(async () => {
 export const createTestUser = async () => {
   const { User } = await import('../src/models/User');
   return User.create({
-    clerkId: 'test-clerk-id',
     email: 'test@example.com',
+    password: 'TestPassword123',
     name: 'Test User',
   });
 };
@@ -108,9 +109,17 @@ export const createTestExecution = async (userId: string) => {
 
 export const mockAuthUser = {
   id: 'test-user-id',
-  clerkId: 'test-clerk-id',
   email: 'test@example.com',
   name: 'Test User',
+};
+
+// Generate test JWT token
+export const generateTestJWT = (userId: string) => {
+  return jwt.sign(
+    { userId },
+    process.env.JWT_SECRET || 'test-jwt-secret',
+    { expiresIn: '1h' }
+  );
 };
 
 // Mock authentication middleware
