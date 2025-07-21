@@ -7,9 +7,7 @@ export interface EnvironmentConfig {
   port: number;
   nodeEnv: string;
   mongodbUri: string;
-  clerkSecretKey?: string;
-  clerkWebhookSecret?: string;
-  jwtSecret?: string;
+  jwtSecret: string;
   jwtExpiresIn: string;
   corsOrigin: string;
   redisUrl?: string;
@@ -18,7 +16,7 @@ export interface EnvironmentConfig {
 }
 
 const validateRequiredEnvVars = (): void => {
-  const required = ['MONGODB_URI'];
+  const required = ['MONGODB_URI', 'JWT_SECRET'];
   const missing = required.filter(key => !process.env[key]);
   
   if (missing.length > 0) {
@@ -33,9 +31,7 @@ export const config: EnvironmentConfig = {
   port: parseInt(process.env.PORT || '3001', 10),
   nodeEnv: process.env.NODE_ENV || 'development',
   mongodbUri: process.env.MONGODB_URI!,
-  clerkSecretKey: process.env.CLERK_SECRET_KEY,
-  clerkWebhookSecret: process.env.CLERK_WEBHOOK_SECRET,
-  jwtSecret: process.env.JWT_SECRET,
+  jwtSecret: process.env.JWT_SECRET!,
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || '7d',
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   redisUrl: process.env.REDIS_URL,
