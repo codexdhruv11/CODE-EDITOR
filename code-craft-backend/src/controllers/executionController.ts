@@ -15,7 +15,7 @@ import { logger } from '../utils/logger';
  * Execute code and save result
  * CRITICAL: No premium checks - all languages available to all authenticated users
  */
-export const executeCode = catchAsync(async (req: Request, res: Response, next: NextFunction) = {
+export const executeCode = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
@@ -110,7 +110,7 @@ export const executeCode = catchAsync(async (req: Request, res: Response, next: 
 /**
  * Get user's execution history with pagination
  */
-export const getUserExecutions = catchAsync(async (req: Request, res: Response, next: NextFunction) = {
+export const getUserExecutions = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
@@ -161,10 +161,10 @@ export const getUserExecutions = catchAsync(async (req: Request, res: Response, 
  * Get list of supported languages
  * CRITICAL: All languages are available to all users (no premium restrictions)
  */
-export const getSupportedLanguages = catchAsync(async (req: Request, res: Response) => {
+export const getSupportedLanguages = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const languages = codeExecutionService.getSupportedLanguages();
 
-  res.status(HTTP_STATUS.OK).json({
+  return res.status(HTTP_STATUS.OK).json({
     languages,
     message: 'All languages are available to all authenticated users',
   });
@@ -173,7 +173,7 @@ export const getSupportedLanguages = catchAsync(async (req: Request, res: Respon
 /**
  * Get execution statistics for current user
  */
-export const getExecutionStats = catchAsync(async (req: Request, res: Response, next: NextFunction) = {
+export const getExecutionStats = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
@@ -215,7 +215,7 @@ export const getExecutionStats = catchAsync(async (req: Request, res: Response, 
 /**
  * Get a specific execution by ID
  */
-export const getExecutionById = catchAsync(async (req: Request, res: Response, next: NextFunction) = {
+export const getExecutionById = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
