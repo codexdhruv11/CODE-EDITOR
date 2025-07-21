@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { Star, Snippet } from '../models';
 import { catchAsync } from '../middleware/errorHandler';
@@ -12,7 +12,7 @@ import { logger } from '../utils/logger';
 /**
  * Toggle star on snippet
  */
-export const toggleStar = catchAsync(async (req: Request, res: Response) => {
+export const toggleStar = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
@@ -55,21 +55,21 @@ export const toggleStar = catchAsync(async (req: Request, res: Response) => {
       starCount: result.starCount,
     });
 
-    res.status(HTTP_STATUS.OK).json({
+    return res.status(HTTP_STATUS.OK).json({
       message: result.isStarred ? 'Snippet starred' : 'Snippet unstarred',
       isStarred: result.isStarred,
       starCount: result.starCount,
     });
   } catch (error) {
     logger.error('Failed to toggle star:', error);
-    throw error;
+    return next(error);
   }
 });
 
 /**
  * Get star count for snippet
  */
-export const getStarCount = catchAsync(async (req: Request, res: Response) => {
+export const getStarCount = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const { id: snippetId } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(snippetId)) {
@@ -95,17 +95,17 @@ export const getStarCount = catchAsync(async (req: Request, res: Response) => {
 
     const starCount = await Star.getStarCount(snippetId);
 
-    res.status(HTTP_STATUS.OK).json({ starCount });
+    return res.status(HTTP_STATUS.OK).json({ starCount });
   } catch (error) {
     logger.error('Failed to get star count:', error);
-    throw error;
+    return next(error);
   }
 });
 
 /**
  * Check if user starred snippet
  */
-export const isStarredByUser = catchAsync(async (req: Request, res: Response) => {
+export const isStarredByUser = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
@@ -140,17 +140,17 @@ export const isStarredByUser = catchAsync(async (req: Request, res: Response) =>
 
     const isStarred = await Star.isStarredBy(req.user.id, snippetId);
 
-    res.status(HTTP_STATUS.OK).json({ isStarred });
+    return res.status(HTTP_STATUS.OK).json({ isStarred });
   } catch (error) {
     logger.error('Failed to check star status:', error);
-    throw error;
+    return next(error);
   }
 });
 
 /**
  * Get users who starred snippet (optional feature)
  */
-export const getSnippetStars = catchAsync(async (req: Request, res: Response) => {
+export const getSnippetStars = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const { id: snippetId } = req.params;
   const page = Math.max(1, parseInt(req.query.page as string) || 1);
   const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string) || 20));
@@ -187,14 +187,17 @@ export const getSnippetStars = catchAsync(async (req: Request, res: Response) =>
       Star.countDocuments({ snippetId }),
     ]);
 
-    const users = stars.map(star => ({
-      id: star.userId._id,
-      name: star.userId.name,
-      clerkId: star.userId.clerkId,
-      starredAt: star.createdAt,
-    }));
+    const users = stars.map(star => {
+      const user = star.userId as any; // Type assertion for populated field
+      return {
+        id: user._id,
+        name: user.name,
+        clerkId: user.clerkId,
+        starredAt: star.createdAt,
+      };
+    });
 
-    res.status(HTTP_STATUS.OK).json({
+    return res.status(HTTP_STATUS.OK).json({
       data: users,
       pagination: {
         page,
@@ -207,14 +210,14 @@ export const getSnippetStars = catchAsync(async (req: Request, res: Response) =>
     });
   } catch (error) {
     logger.error('Failed to get snippet stars:', error);
-    throw error;
+    return next(error);
   }
 });
 
 /**
  * Get star statistics for snippet
  */
-export const getStarStats = catchAsync(async (req: Request, res: Response) => {
+export const getStarStats = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const { id: snippetId } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(snippetId)) {
@@ -270,9 +273,9 @@ export const getStarStats = catchAsync(async (req: Request, res: Response) => {
       isStarred: req.user ? await Star.isStarredBy(req.user.id, snippetId) : false,
     };
 
-    res.status(HTTP_STATUS.OK).json({ stats });
+    return res.status(HTTP_STATUS.OK).json({ stats });
   } catch (error) {
     logger.error('Failed to get star stats:', error);
-    throw error;
+    return next(error);
   }
 });
