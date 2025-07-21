@@ -1,141 +1,161 @@
 'use client';
 
-import { useParams } from 'next/navigation';
-import { useQuery } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Editor } from '@monaco-editor/react';
-import { StarButton } from '@/components/snippet/StarButton';
-import { Calendar, User, Code, MessageSquare } from 'lucide-react';
-import { formatDistanceToNow } from 'date-fns';
-import { useAuth } from '@/hooks/useAuth';
+import React, { useState } from "react";
+import { useParams, useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { Calendar, User, Edit, Trash2, Share } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CommentList } from "@/components/snippet/CommentList";
+import { StarButton } from "@/components/snippet/StarButton";
+import { CodeEditorContainer } from "@/components/editor/CodeEditorContainer";
+import { useAuthStore } from "@/stores/authStore";
+import { useResponsive } from "@/hooks/useResponsive";
+import { apiClient } from "@/lib/api";
+import { API_ENDPOINTS } from "@/lib/constants";
+import { formatDistanceToNow } from "date-fns";
 
 export default function SnippetDetailPage() {
   const params = useParams();
-  const snippetId = params.id as string;
-  const { user } = useAuth();
+  const router = useRouter();
+  const queryClient = useQueryClient();
+  const { user } = useAuthStore();
+  const { isMobile } = useResponsive();
+  const [isEditing, setIsEditing] = useState(false);
   
-  const { data: snippet, isLoading: snippetLoading, error: snippetError } = useQuery({
-    queryKey: ['snippet', snippetId],
+  const snippetId = params.id as string;
+
+  // Fetch snippet details
+  const { data: snippet, isLoading, error } = useQuery({
+    queryKey: ["snippet", snippetId],
     queryFn: async () => {
-      // This would be replaced with actual API call
-      return {
-        id: snippetId,
-        title: 'Example Snippet',
-        code: 'console.log("Hello, world!");',
-        language: 'javascript',
-        createdAt: new Date().toISOString(),
-        user: { id: '123', name: 'John Doe' },
-        stars: 5,
-        comments: []
-      };
-    }
+      const response = await apiClient.get(API_ENDPOINTS.SNIPPETS.DETAIL(snippetId));
+      return response.data;
+    },
   });
 
-  const isOwner = user?.id === snippet?.user.id;
+  // Delete snippet mutation
+  const deleteSnippet = useMutation({
+    mutationFn: async () => {
+      return await apiClient.delete(API_ENDPOINTS.SNIPPETS.DETAIL(snippetId));
+    },
+    onSuccess: () => {
+      toast.success("Snippet deleted successfully");
+      router.push("/snippets");
+      queryClient.invalidateQueries({ queryKey: ["snippets"] });
+    },
+    onError: (error) => {
+      toast.error("Failed to delete snippet");
+      console.error("Delete error:", error);
+    },
+  });
 
-  if (snippetLoading) {
-    return <div className="container py-8">Loading snippet...</div>;
+  // Handle delete confirmation
+  const handleDelete = () => {
+    if (confirm("Are you sure you want to delete this snippet?")) {
+      deleteSnippet.mutate();
+    }
+  };
+
+  // Handle edit
+  const handleEdit = () => {
+    router.push(`/editor?snippetId=${snippetId}`);
+  };
+
+  // Handle share
+  const handleShare = async () => {
+    try {
+      const url = `${window.location.origin}/snippets/${snippetId}`;
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copied to clipboard");
+    } catch (err) {
+      toast.error("Failed to copy link");
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="container py-8 text-center">
+        <p>Loading snippet...</p>
+      </div>
+    );
   }
 
-  if (snippetError) {
-    return <div className="container py-8 text-destructive">Failed to load snippet. Please try again.</div>;
+  if (error || !snippet) {
+    return (
+      <div className="container py-8 text-center">
+        <p className="text-destructive">Failed to load snippet. It may have been deleted or you don't have permission to view it.</p>
+        <Button className="mt-4" onClick={() => router.push("/snippets")}>
+          Back to Snippets
+        </Button>
+      </div>
+    );
   }
+
+  const isOwner = user?._id === snippet.author._id;
 
   return (
     <div className="container py-8">
-      <div className="flex flex-col desktop:flex-row gap-6">
-        {/* Main content - code display */}
-        <div className="flex-1">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-heading-2-mobile desktop:text-heading-2-desktop">{snippet.title}</h1>
-            <StarButton snippetId={snippetId} initialStarCount={snippet.stars} />
-          </div>
-          
-          <Card className="mb-6">
-            <div className="h-[500px] w-full">
-              <Editor
-                height="100%"
-                defaultLanguage={snippet.language}
-                defaultValue={snippet.code}
-                options={{
-                  readOnly: true,
-                  minimap: { enabled: false },
-                  scrollBeyondLastLine: false,
-                  fontSize: 14,
-                }}
-              />
-            </div>
-          </Card>
-
-          {/* Owner actions */}
+      <div className="mb-6 flex items-center justify-between">
+        <h1 className="text-heading-3-mobile tablet:text-heading-3-desktop">{snippet.title}</h1>
+        <div className="flex items-center space-x-2">
+          <StarButton snippetId={snippetId} initialStarCount={snippet.stars} />
+          <Button variant="outline" size="sm" onClick={handleShare}>
+            <Share className="mr-2 h-4 w-4" />
+            Share
+          </Button>
           {isOwner && (
-            <div className="flex gap-4 mb-6">
-              <Button variant="outline">Edit Snippet</Button>
-              <Button variant="destructive">Delete Snippet</Button>
-            </div>
+            <>
+              <Button variant="outline" size="sm" onClick={handleEdit}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit
+              </Button>
+              <Button variant="destructive" size="sm" onClick={handleDelete}>
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete
+              </Button>
+            </>
           )}
+        </div>
+      </div>
 
-          {/* Comments section */}
-          <div className="mt-8">
-            <h2 className="text-heading-3-mobile desktop:text-heading-3-desktop mb-4">Comments</h2>
-            
-            {/* Comment form */}
-            <Card className="p-4 mb-6">
-              <textarea 
-                className="w-full min-h-[100px] p-3 rounded-md border border-input bg-background"
-                placeholder="Add a comment..."
-              />
-              <div className="flex justify-end mt-2">
-                <Button>Post Comment</Button>
+      <div className="grid grid-cols-1 gap-6 desktop:grid-cols-3">
+        <div className="desktop:col-span-2">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+                {snippet.language}
               </div>
-            </Card>
-
-            {/* Comments list */}
-            {snippet.comments.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No comments yet. Be the first to comment!
+              <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+                <div className="flex items-center space-x-1">
+                  <Calendar className="h-4 w-4" />
+                  <span>
+                    {formatDistanceToNow(new Date(snippet.createdAt), { addSuffix: true })}
+                  </span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <User className="h-4 w-4" />
+                  <span>{snippet.author.name}</span>
+                </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {/* Comments would be mapped here */}
-                <Card className="p-4">
-                  <div className="flex justify-between mb-2">
-                    <div className="font-medium">User Name</div>
-                    <div className="text-sm text-muted-foreground">2 days ago</div>
-                  </div>
-                  <p>This is a great snippet! Thanks for sharing.</p>
-                </Card>
+            </CardHeader>
+            <CardContent>
+              <div className="h-[500px] overflow-hidden rounded">
+                <CodeEditorContainer
+                  code={snippet.code}
+                  language={snippet.language}
+                  readOnly
+                  height="100%"
+                />
               </div>
-            )}
-          </div>
+            </CardContent>
+          </Card>
         </div>
 
-        {/* Sidebar - metadata */}
-        <div className="desktop:w-80">
-          <Card className="p-4 sticky top-20">
-            <h2 className="font-semibold mb-4">Snippet Details</h2>
-            <div className="space-y-4">
-              <div className="flex items-center">
-                <User className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>Created by {snippet.user.name}</span>
-              </div>
-              <div className="flex items-center">
-                <Calendar className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>
-                  {formatDistanceToNow(new Date(snippet.createdAt), { addSuffix: true })}
-                </span>
-              </div>
-              <div className="flex items-center">
-                <Code className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>Language: {snippet.language}</span>
-              </div>
-              <div className="flex items-center">
-                <MessageSquare className="h-4 w-4 mr-2 text-muted-foreground" />
-                <span>{snippet.comments.length} comments</span>
-              </div>
-            </div>
-          </Card>
+        <div className="desktop:col-span-1">
+          <CommentList snippetId={snippetId} />
         </div>
       </div>
     </div>
