@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
 import { HTTP_STATUS, ERROR_CODES } from '../utils/constants';
 
 // Register a new user
-export const register = async (req: Request, res: Response) => {
+export const register = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     const { email, password, name } = req.body;
 
@@ -31,15 +31,14 @@ export const register = async (req: Request, res: Response) => {
     await user.save();
 
     // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id },
-      config.jwtSecret,
-      { expiresIn: config.jwtExpiresIn }
-    );
+    const payload = { userId: (user._id as any).toString() };
+    const secret = config.jwtSecret;
+    // @ts-ignore
+    const token = jwt.sign(payload, secret, { expiresIn: config.jwtExpiresIn });
 
     // Remove password from response
     const userResponse = user.toJSON();
-    delete userResponse.password;
+    delete (userResponse as any).password;
 
     logger.info(`New user registered: ${email}`);
 
@@ -60,7 +59,7 @@ export const register = async (req: Request, res: Response) => {
 };
 
 // Login user
-export const login = async (req: Request, res: Response) => {
+export const login = async (req: Request, res: Response): Promise<Response | void> => {
   try {
     const { email, password } = req.body;
 
@@ -87,15 +86,14 @@ export const login = async (req: Request, res: Response) => {
     }
 
     // Generate JWT token
-    const token = jwt.sign(
-      { userId: user._id },
-      config.jwtSecret,
-      { expiresIn: config.jwtExpiresIn }
-    );
+    const payload = { userId: (user._id as any).toString() };
+    const secret = config.jwtSecret;
+    // @ts-ignore
+    const token = jwt.sign(payload, secret, { expiresIn: config.jwtExpiresIn });
 
     // Remove password from response
     const userResponse = user.toJSON();
-    delete userResponse.password;
+    delete (userResponse as any).password;
 
     logger.info(`User logged in: ${email}`);
 
