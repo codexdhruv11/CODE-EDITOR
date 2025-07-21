@@ -11,7 +11,6 @@ declare global {
     interface Request {
       user?: {
         id: string;
-        clerkId: string;
         email: string;
         name: string;
       };
@@ -19,7 +18,7 @@ declare global {
   }
 }
 
-// Authentication middleware using Clerk (if available) or custom JWT
+// Authentication middleware using JWT
 export const requireAuth = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const authHeader = req.headers.authorization;
@@ -35,74 +34,30 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
 
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
-    // If using Clerk
-    if (config.clerkSecretKey) {
-      try {
-        // For Clerk, we would typically use @clerk/express middleware
-        // This is a simplified version - in production, use proper Clerk middleware
-        const decoded = jwt.verify(token, config.clerkSecretKey) as any;
-        
-        const user = await User.findByClerkId(decoded.sub);
-        if (!user) {
-          return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-            error: {
-              message: 'User not found',
-              code: ERROR_CODES.UNAUTHORIZED,
-            },
-          });
-        }
-
-        req.user = {
-          id: user._id.toString(),
-          clerkId: user.clerkId,
-          email: user.email,
-          name: user.name,
-        };
-      } catch (clerkError) {
-        logger.error('Clerk token verification failed:', clerkError);
+    try {
+      const decoded = jwt.verify(token, config.jwtSecret) as any;
+      
+      const user = await User.findById(decoded.userId);
+      if (!user) {
         return res.status(HTTP_STATUS.UNAUTHORIZED).json({
           error: {
-            message: 'Invalid token',
-            code: ERROR_CODES.INVALID_TOKEN,
+            message: 'User not found',
+            code: ERROR_CODES.UNAUTHORIZED,
           },
         });
       }
-    } 
-    // If using custom JWT
-    else if (config.jwtSecret) {
-      try {
-        const decoded = jwt.verify(token, config.jwtSecret) as any;
-        
-        const user = await User.findById(decoded.userId);
-        if (!user) {
-          return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-            error: {
-              message: 'User not found',
-              code: ERROR_CODES.UNAUTHORIZED,
-            },
-          });
-        }
 
-        req.user = {
-          id: user._id.toString(),
-          clerkId: user.clerkId,
-          email: user.email,
-          name: user.name,
-        };
-      } catch (jwtError) {
-        logger.error('JWT token verification failed:', jwtError);
-        return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-          error: {
-            message: 'Invalid token',
-            code: ERROR_CODES.INVALID_TOKEN,
-          },
-        });
-      }
-    } else {
-      return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      req.user = {
+        id: user._id.toString(),
+        email: user.email,
+        name: user.name,
+      };
+    } catch (jwtError) {
+      logger.error('JWT token verification failed:', jwtError);
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         error: {
-          message: 'Authentication not configured',
-          code: ERROR_CODES.INTERNAL_ERROR,
+          message: 'Invalid token',
+          code: ERROR_CODES.INVALID_TOKEN,
         },
       });
     }
@@ -133,30 +88,15 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
 
     // Try to authenticate but don't fail if it doesn't work
     try {
-      if (config.clerkSecretKey) {
-        const decoded = jwt.verify(token, config.clerkSecretKey) as any;
-        const user = await User.findByClerkId(decoded.sub);
-        
-        if (user) {
-          req.user = {
-            id: user._id.toString(),
-            clerkId: user.clerkId,
-            email: user.email,
-            name: user.name,
-          };
-        }
-      } else if (config.jwtSecret) {
-        const decoded = jwt.verify(token, config.jwtSecret) as any;
-        const user = await User.findById(decoded.userId);
-        
-        if (user) {
-          req.user = {
-            id: user._id.toString(),
-            clerkId: user.clerkId,
-            email: user.email,
-            name: user.name,
-          };
-        }
+      const decoded = jwt.verify(token, config.jwtSecret) as any;
+      const user = await User.findById(decoded.userId);
+      
+      if (user) {
+        req.user = {
+          id: user._id.toString(),
+          email: user.email,
+          name: user.name,
+        };
       }
     } catch (error) {
       // Ignore authentication errors for optional auth
