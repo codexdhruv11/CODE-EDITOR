@@ -16,7 +16,6 @@ const nextConfig = {
   },
   // Enable experimental features
   experimental: {
-    serverActions: true,
     serverComponentsExternalPackages: [],
   },
   // Handle environment variables
