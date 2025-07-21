@@ -9,17 +9,18 @@ const window = new JSDOM('').window;
 const purify = DOMPurify(window as any);
 
 // Middleware to handle validation errors
-export const handleValidationErrors = (req: Request, res: Response, next: NextFunction) => {
+export const handleValidationErrors = (req: Request, res: Response, next: NextFunction): void => {
   const errors = validationResult(req);
   
   if (!errors.isEmpty()) {
-    return res.status(HTTP_STATUS.BAD_REQUEST).json({
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
       error: {
         message: 'Validation failed',
         code: ERROR_CODES.VALIDATION_ERROR,
         details: errors.array(),
       },
     });
+    return;
   }
   
   next();
@@ -180,11 +181,11 @@ export const validateSearch = [
 ];
 
 // Language validation helper
-export const validateLanguage = (req: Request, res: Response, next: NextFunction) => {
+export const validateLanguage = (req: Request, res: Response, next: NextFunction): void => {
   const { language } = req.body;
   
   if (!getSupportedLanguageIds().includes(language)) {
-    return res.status(HTTP_STATUS.BAD_REQUEST).json({
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
       error: {
         message: `Unsupported language: ${language}`,
         code: ERROR_CODES.INVALID_LANGUAGE,
@@ -193,6 +194,7 @@ export const validateLanguage = (req: Request, res: Response, next: NextFunction
         },
       },
     });
+    return;
   }
   
   next();

@@ -8,6 +8,8 @@ export interface IUser extends Document {
   createdAt: Date;
   updatedAt: Date;
   toJSON(): any;
+  comparePassword(password: string): Promise<boolean>;
+  _id: mongoose.Types.ObjectId;
 }
 
 export interface IUserMethods {
@@ -46,9 +48,9 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
   {
     timestamps: true,
     toJSON: {
-      transform: function(doc, ret) {
-        delete ret.__v;
-        return ret;
+      transform: function(doc, ret: Record<string, any>) {
+        const { __v, ...rest } = ret;
+        return rest;
       },
     },
   }
@@ -73,7 +75,7 @@ userSchema.pre('save', async function(next) {
 
 // Instance methods
 userSchema.methods.isOwnedBy = function(userId: string): boolean {
-  return this._id.toString() === userId;
+  return this._id instanceof mongoose.Types.ObjectId && this._id.toString() === userId;
 };
 
 userSchema.methods.comparePassword = async function(password: string): Promise<boolean> {
@@ -88,8 +90,8 @@ userSchema.statics.findByEmail = function(email: string) {
 // Custom toJSON method
 userSchema.methods.toJSON = function() {
   const userObject = this.toObject();
-  delete userObject.__v;
-  return userObject;
+  const { __v, ...rest } = userObject;
+  return rest;
 };
 
 export const User = mongoose.model<IUser, UserModel>('User', userSchema);

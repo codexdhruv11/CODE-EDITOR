@@ -39,7 +39,7 @@ const transports = [
       winston.format.colorize(),
       winston.format.simple()
     ),
-  }),
+  }) as any,
 ];
 
 // Add file transport for production
@@ -52,14 +52,14 @@ if (config.nodeEnv === 'production') {
         winston.format.timestamp(),
         winston.format.json()
       ),
-    }),
+    }) as any,
     new winston.transports.File({
       filename: config.logFile,
       format: winston.format.combine(
         winston.format.timestamp(),
         winston.format.json()
       ),
-    })
+    }) as any
   );
 }
 
@@ -84,7 +84,7 @@ export const httpLogger = winston.createLogger({
         winston.format.colorize(),
         winston.format.simple()
       ),
-    }),
+    }) as any,
   ],
 });
 
