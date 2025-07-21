@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import authRoutes from './authRoutes';
 import userRoutes from './userRoutes';
 import snippetRoutes from './snippetRoutes';
 import commentRoutes from './commentRoutes';
@@ -41,6 +42,7 @@ router.get('/version', (req: Request, res: Response) => {
 });
 
 // Mount route modules with appropriate prefixes
+router.use('/auth', authRoutes);
 router.use('/users', userRoutes);
 router.use('/snippets', snippetRoutes);
 router.use('/comments', commentRoutes);
@@ -58,9 +60,14 @@ router.get('/docs', (req: Request, res: Response) => {
       health: 'GET /api/health - Health check',
       version: 'GET /api/version - API version info',
       
+      // Authentication endpoints
+      auth: {
+        register: 'POST /api/auth/register - Register new user',
+        login: 'POST /api/auth/login - Login user',
+      },
+      
       // User endpoints
       users: {
-        sync: 'POST /api/users/sync - Sync user from auth provider',
         me: 'GET /api/users/me - Get current user profile',
         updateMe: 'PATCH /api/users/me - Update user profile',
         stats: 'GET /api/users/:id/stats - Get user statistics',
@@ -108,14 +115,13 @@ router.get('/docs', (req: Request, res: Response) => {
       
       // Webhook endpoints
       webhooks: {
-        clerk: 'POST /api/webhooks/clerk - Clerk user webhooks',
         health: 'GET /api/webhooks/health - Webhook health check',
       },
     },
     authentication: {
       type: 'Bearer Token',
       header: 'Authorization: Bearer <token>',
-      description: 'Use Clerk JWT token or custom JWT token',
+      description: 'Use JWT token obtained from /api/auth/login or /api/auth/register',
     },
     rateLimit: {
       general: '100 requests per minute per IP',
