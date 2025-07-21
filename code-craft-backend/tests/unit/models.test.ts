@@ -60,23 +60,23 @@ describe('Models Unit Tests', () => {
       const email = 'duplicate@example.com';
       
       await User.create({
-        clerkId: 'clerk-1',
         email,
+        password: 'TestPassword123',
         name: 'User 1',
       });
 
       const duplicateUser = new User({
-        clerkId: 'clerk-2',
         email,
+        password: 'TestPassword123',
         name: 'User 2',
       });
 
       await expect(duplicateUser.save()).rejects.toThrow();
     });
 
-    it('should have findByClerkId static method', async () => {
+    it('should have findByEmail static method', async () => {
       const user = await createTestUser();
-      const foundUser = await User.findByClerkId(user.clerkId);
+      const foundUser = await User.findByEmail(user.email);
       
       expect(foundUser).toBeDefined();
       expect(foundUser!._id.toString()).toBe(user._id.toString());
@@ -85,8 +85,8 @@ describe('Models Unit Tests', () => {
     it('should have isOwnedBy instance method', async () => {
       const user = await createTestUser();
       
-      expect(user.isOwnedBy(user.clerkId)).toBe(true);
-      expect(user.isOwnedBy('different-clerk-id')).toBe(false);
+      expect(user.isOwnedBy(user._id.toString())).toBe(true);
+      expect(user.isOwnedBy('different-user-id')).toBe(false);
     });
   });
 
