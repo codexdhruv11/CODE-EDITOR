@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import { SnippetComment, Snippet } from '../models';
 import { catchAsync } from '../middleware/errorHandler';
@@ -13,7 +13,7 @@ import { logger } from '../utils/logger';
 /**
  * Add comment to snippet
  */
-export const addComment = catchAsync(async (req: Request, res: Response) => {
+export const addComment = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
@@ -63,20 +63,20 @@ export const addComment = catchAsync(async (req: Request, res: Response) => {
       userId: req.user.id,
     });
 
-    res.status(HTTP_STATUS.CREATED).json({
+    return res.status(HTTP_STATUS.CREATED).json({
       message: 'Comment added successfully',
       comment: comment.toJSON(),
     });
   } catch (error) {
     logger.error('Failed to add comment:', error);
-    throw error;
+    return next(error);
   }
 });
 
 /**
  * Get comments for snippet with pagination
  */
-export const getComments = catchAsync(async (req: Request, res: Response) => {
+export const getComments = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const { id: snippetId } = req.params;
   const { page, limit } = parsePaginationParams(req);
 
@@ -104,7 +104,7 @@ export const getComments = catchAsync(async (req: Request, res: Response) => {
     // Get comments with pagination
     const result = await SnippetComment.getBySnippetId(snippetId, page, limit);
 
-    res.status(HTTP_STATUS.OK).json({
+    return res.status(HTTP_STATUS.OK).json({
       data: result.comments,
       pagination: {
         page: result.page,
@@ -117,14 +117,14 @@ export const getComments = catchAsync(async (req: Request, res: Response) => {
     });
   } catch (error) {
     logger.error('Failed to get comments:', error);
-    throw error;
+    return next(error);
   }
 });
 
 /**
  * Update comment (owner only)
  */
-export const updateComment = catchAsync(async (req: Request, res: Response) => {
+export const updateComment = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
@@ -177,20 +177,20 @@ export const updateComment = catchAsync(async (req: Request, res: Response) => {
       userId: req.user.id,
     });
 
-    res.status(HTTP_STATUS.OK).json({
+    return res.status(HTTP_STATUS.OK).json({
       message: 'Comment updated successfully',
       comment: comment.toJSON(),
     });
   } catch (error) {
     logger.error('Failed to update comment:', error);
-    throw error;
+    return next(error);
   }
 });
 
 /**
  * Delete comment (owner only)
  */
-export const deleteComment = catchAsync(async (req: Request, res: Response) => {
+export const deleteComment = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
@@ -240,19 +240,19 @@ export const deleteComment = catchAsync(async (req: Request, res: Response) => {
       userId: req.user.id,
     });
 
-    res.status(HTTP_STATUS.OK).json({
+    return res.status(HTTP_STATUS.OK).json({
       message: 'Comment deleted successfully',
     });
   } catch (error) {
     logger.error('Failed to delete comment:', error);
-    throw error;
+    return next(error);
   }
 });
 
 /**
  * Get comment by ID
  */
-export const getCommentById = catchAsync(async (req: Request, res: Response) => {
+export const getCommentById = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   const { id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
@@ -276,17 +276,17 @@ export const getCommentById = catchAsync(async (req: Request, res: Response) => 
       });
     }
 
-    res.status(HTTP_STATUS.OK).json({ comment });
+    return res.status(HTTP_STATUS.OK).json({ comment });
   } catch (error) {
     logger.error('Failed to get comment:', error);
-    throw error;
+    return next(error);
   }
 });
 
 /**
  * Get user's comments with pagination
  */
-export const getUserComments = catchAsync(async (req: Request, res: Response) => {
+export const getUserComments = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
   if (!req.user) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
@@ -308,7 +308,7 @@ export const getUserComments = catchAsync(async (req: Request, res: Response) =>
       SnippetComment.countDocuments({ userId: req.user.id }),
     ]);
 
-    res.status(HTTP_STATUS.OK).json({
+    return res.status(HTTP_STATUS.OK).json({
       data: comments,
       pagination: {
         page,
@@ -321,6 +321,6 @@ export const getUserComments = catchAsync(async (req: Request, res: Response) =>
     });
   } catch (error) {
     logger.error('Failed to get user comments:', error);
-    throw error;
+    return next(error);
   }
 });
