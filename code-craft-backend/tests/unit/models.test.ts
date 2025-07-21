@@ -5,38 +5,55 @@ describe('Models Unit Tests', () => {
   describe('User Model', () => {
     it('should create a user with required fields', async () => {
       const userData = {
-        clerkId: 'test-clerk-123',
         email: 'test@example.com',
+        password: 'TestPassword123',
         name: 'Test User',
       };
 
       const user = new User(userData);
       await user.save();
 
-      expect(user.clerkId).toBe(userData.clerkId);
       expect(user.email).toBe(userData.email);
       expect(user.name).toBe(userData.name);
       expect(user.createdAt).toBeDefined();
       expect(user.updatedAt).toBeDefined();
+      // Password should be hashed
+      expect(user.password).not.toBe(userData.password);
+      expect(user.password).toBeDefined();
     });
 
-    it('should enforce unique clerkId', async () => {
+    it('should hash password before saving', async () => {
       const userData = {
-        clerkId: 'duplicate-clerk-id',
-        email: 'test1@example.com',
-        name: 'Test User 1',
+        email: 'test@example.com',
+        password: 'PlainTextPassword',
+        name: 'Test User',
       };
 
-      await User.create(userData);
+      const user = new User(userData);
+      await user.save();
 
-      // Try to create another user with same clerkId
-      const duplicateUser = new User({
-        clerkId: 'duplicate-clerk-id',
-        email: 'test2@example.com',
-        name: 'Test User 2',
-      });
+      // Password should be hashed, not plain text
+      expect(user.password).not.toBe('PlainTextPassword');
+      expect(user.password.length).toBeGreaterThan(20); // Bcrypt hashes are longer
+    });
 
-      await expect(duplicateUser.save()).rejects.toThrow();
+    it('should validate password correctly', async () => {
+      const userData = {
+        email: 'test@example.com',
+        password: 'TestPassword123',
+        name: 'Test User',
+      };
+
+      const user = new User(userData);
+      await user.save();
+
+      // Correct password should validate
+      const isValidCorrect = await user.comparePassword('TestPassword123');
+      expect(isValidCorrect).toBe(true);
+
+      // Incorrect password should not validate
+      const isValidIncorrect = await user.comparePassword('WrongPassword');
+      expect(isValidIncorrect).toBe(false);
     });
 
     it('should enforce unique email', async () => {
