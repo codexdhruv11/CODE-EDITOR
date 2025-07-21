@@ -15,7 +15,7 @@ export const connectDatabase = async (): Promise<void> => {
       socketTimeoutMS: 45000,
       bufferMaxEntries: 0,
       retryWrites: true,
-      w: 'majority'
+      w: 'majority' as const,
     };
 
     await mongoose.connect(mongoUri, options);
