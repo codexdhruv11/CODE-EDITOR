@@ -1,6 +1,5 @@
 import { Router } from 'express';
 import {
-  syncUser,
   getCurrentUser,
   updateUser,
   getUserStats,
@@ -15,8 +14,6 @@ const router = Router();
 // Apply general rate limiting to all user routes
 router.use(generalLimiter);
 
-// User sync route (for webhooks/internal use)
-router.post('/sync', syncUser);
 
 // Get current user profile (requires authentication)
 router.get('/me', requireAuth, getCurrentUser);
