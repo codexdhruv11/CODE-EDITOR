@@ -3,10 +3,28 @@ import { Request, Response } from 'express';
 import { RATE_LIMITS, HTTP_STATUS, ERROR_CODES } from '../utils/constants';
 import { logger } from '../utils/logger';
 
+// Helper function to create rate limiters
+export const createRateLimiter = (options: {
+  windowMs: number;
+  max: number;
+  message: any;
+  useAuth?: boolean;
+}) => {
+  return rateLimit({
+    windowMs: options.windowMs,
+    max: options.max,
+    keyGenerator: options.useAuth ? authKeyGenerator : ((req: Request) => req.ip || 'unknown'),
+    handler: rateLimitHandler,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: options.message,
+  });
+};
+
 // Custom key generator for authenticated endpoints
 const authKeyGenerator = (req: Request): string => {
   // Use user ID if authenticated, otherwise fall back to IP
-  return req.user?.id || req.ip;
+  return req.user?.id || req.ip || 'unknown';
 };
 
 // Custom error handler for rate limiting
@@ -77,7 +95,7 @@ export const commentLimiter = rateLimit({
 export const generalLimiter = rateLimit({
   windowMs: RATE_LIMITS.GENERAL_API.windowMs,
   max: RATE_LIMITS.GENERAL_API.max,
-  keyGenerator: (req: Request) => req.ip,
+  keyGenerator: (req: Request) => req.ip || 'unknown',
   handler: rateLimitHandler,
   standardHeaders: true,
   legacyHeaders: false,
@@ -111,7 +129,7 @@ export const starLimiter = rateLimit({
 export const webhookLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 100, // 100 webhook calls per minute
-  keyGenerator: (req: Request) => req.ip,
+  keyGenerator: (req: Request) => req.ip || 'unknown',
   handler: rateLimitHandler,
   standardHeaders: true,
   legacyHeaders: false,
