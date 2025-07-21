@@ -1,50 +1,48 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { STORAGE_KEYS } from './lib/constants';
+import { NextResponse } from 'next/server';
+import type { NextRequest } from 'next/server';
 
-// Define protected routes that require authentication
+// Protected routes that require authentication
 const protectedRoutes = [
   '/editor',
   '/profile',
-  '/snippets/create',
-  '/snippets/edit',
+  '/snippets/starred',
   '/executions',
 ];
 
-// Define auth routes (login/register)
-const authRoutes = ['/login', '/register'];
+// Routes that should redirect to dashboard if already authenticated
+const authRoutes = [
+  '/login',
+  '/register',
+];
 
 export function middleware(request: NextRequest) {
+  const token = request.cookies.get('token')?.value;
   const { pathname } = request.nextUrl;
   
-  // Get token from cookies
-  const token = request.cookies.get(STORAGE_KEYS.AUTH_TOKEN)?.value;
-  
   // Check if the route is protected and user is not authenticated
-  const isProtectedRoute = protectedRoutes.some(route => pathname.startsWith(route));
-  if (isProtectedRoute && !token) {
+  if (protectedRoutes.some(route => pathname.startsWith(route)) && !token) {
     const url = new URL('/login', request.url);
     url.searchParams.set('from', pathname);
     return NextResponse.redirect(url);
   }
   
-  // Check if user is trying to access auth routes while already authenticated
-  const isAuthRoute = authRoutes.some(route => pathname === route);
-  if (isAuthRoute && token) {
+  // Check if user is already authenticated and trying to access auth routes
+  if (authRoutes.some(route => pathname.startsWith(route)) && token) {
     return NextResponse.redirect(new URL('/', request.url));
   }
   
   return NextResponse.next();
 }
 
-// Configure middleware to run only on specific paths
+// Configure the paths that should invoke this middleware
 export const config = {
   matcher: [
     /*
-     * Match all request paths except for:
+     * Match all request paths except:
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * - public files (e.g. robots.txt)
+     * - public folder
      */
     '/((?!_next/static|_next/image|favicon.ico|public).*)',
   ],
