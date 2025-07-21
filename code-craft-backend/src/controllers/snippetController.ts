@@ -5,6 +5,7 @@ import { catchAsync } from '../middleware/errorHandler';
 import { HTTP_STATUS, ERROR_CODES } from '../utils/constants';
 import { parsePaginationParams, buildPaginationResponse } from '../utils/pagination';
 import { logger } from '../utils/logger';
+import { ISnippet } from '../models/Snippet';
 
 /**
  * Snippet controller handling all snippet-related operations
@@ -14,14 +15,15 @@ import { logger } from '../utils/logger';
 /**
  * Create new code snippet
  */
-export const createSnippet = catchAsync(async (req: Request, res: Response) => {
+export const createSnippet = catchAsync(async (req: Request, res: Response): Promise<void> => {
   if (!req.user) {
-    return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+    res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
         message: 'User not authenticated',
         code: ERROR_CODES.UNAUTHORIZED,
       },
     });
+    return;
   }
 
   const { title, language, code } = req.body;
@@ -100,16 +102,17 @@ export const getSnippets = catchAsync(async (req: Request, res: Response) => {
 /**
  * Get specific snippet by ID
  */
-export const getSnippetById = catchAsync(async (req: Request, res: Response) => {
+export const getSnippetById = catchAsync(async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(HTTP_STATUS.BAD_REQUEST).json({
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
       error: {
         message: 'Invalid snippet ID',
         code: ERROR_CODES.INVALID_INPUT,
       },
     });
+    return;
   }
 
   try {
@@ -118,18 +121,20 @@ export const getSnippetById = catchAsync(async (req: Request, res: Response) => 
       .populate('commentCount');
 
     if (!snippet) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
+      res.status(HTTP_STATUS.NOT_FOUND).json({
         error: {
           message: 'Snippet not found',
           code: ERROR_CODES.NOT_FOUND,
         },
       });
+      return;
     }
 
     // Check if current user has starred this snippet
     let isStarred = false;
     if (req.user) {
-      isStarred = await Star.isStarredBy(req.user.id, snippet._id.toString());
+      const snippetDoc = snippet as ISnippet & { _id: mongoose.Types.ObjectId };
+      isStarred = await Star.isStarredBy(req.user.id, snippetDoc._id.toString());
     }
 
     res.status(HTTP_STATUS.OK).json({
@@ -147,48 +152,52 @@ export const getSnippetById = catchAsync(async (req: Request, res: Response) => 
 /**
  * Update snippet (owner only)
  */
-export const updateSnippet = catchAsync(async (req: Request, res: Response) => {
+export const updateSnippet = catchAsync(async (req: Request, res: Response): Promise<void> => {
   if (!req.user) {
-    return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+    res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
         message: 'User not authenticated',
         code: ERROR_CODES.UNAUTHORIZED,
       },
     });
+    return;
   }
 
   const { id } = req.params;
   const { title, language, code } = req.body;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(HTTP_STATUS.BAD_REQUEST).json({
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
       error: {
         message: 'Invalid snippet ID',
         code: ERROR_CODES.INVALID_INPUT,
       },
     });
+    return;
   }
 
   try {
     const snippet = await Snippet.findById(id);
 
     if (!snippet) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
+      res.status(HTTP_STATUS.NOT_FOUND).json({
         error: {
           message: 'Snippet not found',
           code: ERROR_CODES.NOT_FOUND,
         },
       });
+      return;
     }
 
     // Check ownership
     if (!snippet.isOwnedBy(req.user.id)) {
-      return res.status(HTTP_STATUS.FORBIDDEN).json({
+      res.status(HTTP_STATUS.FORBIDDEN).json({
         error: {
           message: 'You can only update your own snippets',
           code: ERROR_CODES.FORBIDDEN,
         },
       });
+      return;
     }
 
     // Update fields if provided
@@ -222,47 +231,51 @@ export const updateSnippet = catchAsync(async (req: Request, res: Response) => {
 /**
  * Delete snippet with cascade delete of comments and stars
  */
-export const deleteSnippet = catchAsync(async (req: Request, res: Response) => {
+export const deleteSnippet = catchAsync(async (req: Request, res: Response): Promise<void> => {
   if (!req.user) {
-    return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+    res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
         message: 'User not authenticated',
         code: ERROR_CODES.UNAUTHORIZED,
       },
     });
+    return;
   }
 
   const { id } = req.params;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
-    return res.status(HTTP_STATUS.BAD_REQUEST).json({
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
       error: {
         message: 'Invalid snippet ID',
         code: ERROR_CODES.INVALID_INPUT,
       },
     });
+    return;
   }
 
   try {
     const snippet = await Snippet.findById(id);
 
     if (!snippet) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
+      res.status(HTTP_STATUS.NOT_FOUND).json({
         error: {
           message: 'Snippet not found',
           code: ERROR_CODES.NOT_FOUND,
         },
       });
+      return;
     }
 
     // Check ownership
     if (!snippet.isOwnedBy(req.user.id)) {
-      return res.status(HTTP_STATUS.FORBIDDEN).json({
+      res.status(HTTP_STATUS.FORBIDDEN).json({
         error: {
           message: 'You can only delete your own snippets',
           code: ERROR_CODES.FORBIDDEN,
         },
       });
+      return;
     }
 
     // Use transaction for cascade deletion
@@ -300,14 +313,15 @@ export const deleteSnippet = catchAsync(async (req: Request, res: Response) => {
 /**
  * Get user's starred snippets
  */
-export const getStarredSnippets = catchAsync(async (req: Request, res: Response) => {
+export const getStarredSnippets = catchAsync(async (req: Request, res: Response): Promise<void> => {
   if (!req.user) {
-    return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+    res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
         message: 'User not authenticated',
         code: ERROR_CODES.UNAUTHORIZED,
       },
     });
+    return;
   }
 
   const { page, limit } = parsePaginationParams(req);
@@ -335,7 +349,7 @@ export const getStarredSnippets = catchAsync(async (req: Request, res: Response)
 /**
  * Get snippets by user ID (public)
  */
-export const getSnippetsByUser = catchAsync(async (req: Request, res: Response) => {
+export const getSnippetsByUser = catchAsync(async (req: Request, res: Response): Promise<void> => {
   const { userId } = req.params;
   const { page, limit, skip } = parsePaginationParams(req);
 
@@ -344,16 +358,17 @@ export const getSnippetsByUser = catchAsync(async (req: Request, res: Response) 
   if (mongoose.Types.ObjectId.isValid(userId)) {
     user = await User.findById(userId);
   } else {
-    user = await User.findByClerkId(userId);
+    user = null;
   }
 
   if (!user) {
-    return res.status(HTTP_STATUS.NOT_FOUND).json({
+    res.status(HTTP_STATUS.NOT_FOUND).json({
       error: {
         message: 'User not found',
         code: ERROR_CODES.NOT_FOUND,
       },
     });
+    return;
   }
 
   try {
@@ -374,7 +389,6 @@ export const getSnippetsByUser = catchAsync(async (req: Request, res: Response) 
       user: {
         id: user._id,
         name: user.name,
-        clerkId: user.clerkId,
       },
     });
   } catch (error) {
