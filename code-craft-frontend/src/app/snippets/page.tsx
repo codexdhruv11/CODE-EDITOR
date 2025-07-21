@@ -6,8 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Search, Filter } from 'lucide-react';
-import { SnippetCard } from '@/components/snippet/SnippetCard';
-import { fetchSnippets } from '@/lib/api';
+import { LazySnippetCard } from '@/components/lazy/LazySnippetCard';
+import { snippetApi } from '@/lib/api';
 import { useResponsive } from '@/hooks/useResponsive';
 
 export default function SnippetsPage() {
@@ -18,7 +18,7 @@ export default function SnippetsPage() {
   
   const { data, isLoading, error } = useQuery({
     queryKey: ['snippets', page, language, searchQuery],
-    queryFn: () => fetchSnippets({ page, limit: 12, language, search: searchQuery }),
+    queryFn: () => snippetApi.getSnippets({ page, limit: 12, language, search: searchQuery }),
   });
 
   const handleSearch = (e: React.FormEvent) => {
@@ -103,7 +103,7 @@ export default function SnippetsPage() {
             <>
               <div className="responsive-grid">
                 {data?.snippets?.map((snippet) => (
-                  <SnippetCard key={snippet.id} snippet={snippet} />
+                  <LazySnippetCard key={snippet.id} snippet={snippet} />
                 ))}
               </div>
 

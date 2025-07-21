@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Menu, X, Sun, Moon, Code, Search, ChevronDown } from "lucide-react";
@@ -25,6 +25,7 @@ export function Header() {
   const { isAuthenticated, user, logout } = useAuthStore();
   const { isSidebarOpen, setSidebarOpen } = useUIStore();
   const { isMobile, isTablet } = useResponsive();
+  const [mounted, setMounted] = useState(false);
 
   const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
   
@@ -32,6 +33,11 @@ export function Header() {
     logout();
     router.push("/login");
   };
+
+  // Prevent hydration mismatch for theme
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <div className="flex h-16 items-center justify-between px-4 tablet:px-6">
@@ -69,7 +75,13 @@ export function Header() {
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
           aria-label="Toggle theme"
         >
-          {theme === "dark" ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+          {!mounted ? (
+            <div className="h-5 w-5" />
+          ) : theme === "dark" ? (
+            <Sun className="h-5 w-5" />
+          ) : (
+            <Moon className="h-5 w-5" />
+          )}
         </Button>
         
         {/* User Menu */}

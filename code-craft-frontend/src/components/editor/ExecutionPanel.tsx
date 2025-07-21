@@ -1,23 +1,26 @@
 "use client";
 
 import React, { useState } from "react";
+import { useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Play, AlertCircle, CheckCircle2, Clock, Save } from "lucide-react";
-import { useMutation } from '@tanstack/react-query';
-
-import { Button } from "@/components/ui/button";
+import { Play, Save, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ExecutionPanelProps } from "@/types/ui";
-import { fadeIn } from "@/lib/animations";
+import { executionApi } from "@/lib/api";
+import { toast } from "sonner";
+import { useAuthStore } from "@/stores/authStore";
+import { useRouter } from "next/navigation";
 
 export function ExecutionPanel({
   language,
   code,
-  onExecute,
-  isExecuting,
-  result,
+  onSaveSnippet,
+  className,
 }: ExecutionPanelProps) {
+  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
   const [isSaving, setIsSaving] = useState(false);
   const [output, setOutput] = useState<string>('');
   const [executionTime, setExecutionTime] = useState<number | null>(null);
@@ -25,36 +28,36 @@ export function ExecutionPanel({
 
   const { mutate: executeCode, isPending } = useMutation({
     mutationFn: async () => {
-      // This would be replaced with actual API call
-      // e.g. await axios.post('/api/executions', { code, language });
-      
-      // Simulate API call
-      return new Promise<{ output: string; executionTime: number }>((resolve, reject) => {
-        setTimeout(() => {
-          // Simulate success or error
-          if (code.includes('error') || Math.random() > 0.8) {
-            resolve({
-              output: 'Error: Something went wrong in your code.',
-              executionTime: Math.random() * 0.5,
-            });
-            setExecutionStatus('error');
-          } else {
-            resolve({
-              output: `Execution successful!\nOutput: ${code}`,
-              executionTime: Math.random() * 1.5,
-            });
-            setExecutionStatus('success');
-          }
-        }, 1000);
-      });
+      // Check authentication first
+      if (!isAuthenticated) {
+        toast.error("Please sign in to execute code");
+        router.push("/login");
+        throw new Error("Not authenticated");
+      }
+
+      const response = await executionApi.executeCode(language, code);
+      return response.execution;
     },
     onSuccess: (data) => {
-      setOutput(data.output);
+      if (data.success) {
+        setOutput(data.output || '');
+        setExecutionStatus('success');
+      } else {
+        setOutput(data.error || 'Execution failed');
+        setExecutionStatus('error');
+      }
       setExecutionTime(data.executionTime);
     },
-    onError: (error) => {
-      setOutput('Error: Failed to execute code. Please try again.');
+    onError: (error: any) => {
+      console.error('Execution error:', error);
+      const errorMessage = error.response?.data?.error?.message || 
+                          error.message || 
+                          'Failed to execute code. Please try again.';
+      setOutput(errorMessage);
       setExecutionStatus('error');
+      
+      // Show toast for better UX
+      toast.error(errorMessage);
     },
   });
 
@@ -73,15 +76,21 @@ export function ExecutionPanel({
   const handleSaveSnippet = () => {
     setIsSaving(true);
     // Implement save logic or navigation to snippet creation form
+    if (onSaveSnippet) {
+      onSaveSnippet();
+    }
     setTimeout(() => setIsSaving(false), 1000);
   };
 
   return (
     <motion.div
-      className="flex h-full flex-col overflow-hidden"
+      className={cn("flex h-full flex-col overflow-hidden", className)}
       initial="hidden"
       animate="visible"
-      variants={fadeIn}
+      variants={{
+        hidden: { opacity: 0 },
+        visible: { opacity: 1, transition: { duration: 0.4 } }
+      }}
     >
       <Card className="flex h-full flex-col overflow-hidden border-0 shadow-none">
         <CardHeader className="border-b px-4 py-3">
@@ -100,7 +109,7 @@ export function ExecutionPanel({
                 Run
               </Button>
               
-              {result && result.status === "success" && (
+              {executionStatus === 'success' && (
                 <Button
                   variant="outline"
                   size="sm"

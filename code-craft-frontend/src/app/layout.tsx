@@ -4,8 +4,10 @@ import { JetBrains_Mono as FontMono } from 'next/font/google';
 import '@/styles/globals.css';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { ReactQueryProvider } from '@/components/providers/react-query-provider';
+import { AuthProvider } from '@/components/providers/auth-provider';
 import { Header } from '@/components/layout/Header';
 import { ResponsiveLayout } from '@/components/layout/ResponsiveLayout';
+import { AuthGuard } from '@/components/auth/AuthGuard';
 
 // Font configuration
 const fontSans = FontSans({
@@ -40,9 +42,13 @@ export default function RootLayout({
         
         <ThemeProvider>
           <ReactQueryProvider>
-            <ResponsiveLayout header={<Header />}>
-              {children}
-            </ResponsiveLayout>
+            <AuthProvider>
+              <AuthGuard>
+                <ResponsiveLayout header={<Header />}>
+                  {children}
+                </ResponsiveLayout>
+              </AuthGuard>
+            </AuthProvider>
           </ReactQueryProvider>
         </ThemeProvider>
       </body>

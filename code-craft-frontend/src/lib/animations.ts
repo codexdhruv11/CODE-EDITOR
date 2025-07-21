@@ -1,16 +1,5 @@
 'use client';
 
-// ReactBits animations - fallback to custom implementations if package not available
-let fadeIn, slideUp, slideDown, slideLeft, slideRight, scaleIn, staggerContainer, staggerItem, bounceIn, rotateIn;
-
-try {
-  const reactBits = require('@appletosolutions/reactbits');
-  ({ fadeIn, slideUp, slideDown, slideLeft, slideRight, scaleIn, staggerContainer, staggerItem, bounceIn, rotateIn } = reactBits);
-} catch (error) {
-  // Fallback implementations if ReactBits is not available
-  console.warn('ReactBits not available, using fallback animations');
-}
-
 import { useEffect, useState } from 'react';
 import { AnimationVariants } from '@/types/ui';
 import { ANIMATION_PRIORITIES } from './constants';
@@ -94,19 +83,30 @@ const fallbackAnimations = {
   }
 };
 
-// Export animations (ReactBits if available, fallback otherwise)
-export {
-  fadeIn: fadeIn || fallbackAnimations.fadeIn,
-  slideUp: slideUp || fallbackAnimations.slideUp,
-  slideDown: slideDown || fallbackAnimations.slideDown,
-  slideLeft: slideLeft || fallbackAnimations.slideLeft,
-  slideRight: slideRight || fallbackAnimations.slideRight,
-  scaleIn: scaleIn || fallbackAnimations.scaleIn,
-  staggerContainer: staggerContainer || fallbackAnimations.staggerContainer,
-  staggerItem: staggerItem || fallbackAnimations.staggerItem,
-  bounceIn: bounceIn || fallbackAnimations.bounceIn,
-  rotateIn: rotateIn || fallbackAnimations.rotateIn
-};
+// ReactBits animations - fallback to custom implementations if package not available
+let fadeIn, slideUp, slideDown, slideLeft, slideRight, scaleIn, staggerContainer, staggerItem, bounceIn, rotateIn;
+
+try {
+  const reactBits = require('@appletosolutions/reactbits');
+  ({ fadeIn, slideUp, slideDown, slideLeft, slideRight, scaleIn, staggerContainer, staggerItem, bounceIn, rotateIn } = reactBits);
+} catch (error) {
+  // Fallback implementations if ReactBits is not available
+  // ReactBits not available, using fallback animations
+  
+  // Assign fallback animations
+  fadeIn = fallbackAnimations.fadeIn;
+  slideUp = fallbackAnimations.slideUp;
+  slideDown = fallbackAnimations.slideDown;
+  slideLeft = fallbackAnimations.slideLeft;
+  slideRight = fallbackAnimations.slideRight;
+  scaleIn = fallbackAnimations.scaleIn;
+  staggerContainer = fallbackAnimations.staggerContainer;
+  staggerItem = fallbackAnimations.staggerItem;
+  bounceIn = fallbackAnimations.bounceIn;
+  rotateIn = fallbackAnimations.rotateIn;
+}
+
+export { fadeIn, slideUp, slideDown, slideLeft, slideRight, scaleIn, staggerContainer, staggerItem, bounceIn, rotateIn };
 
 /**
  * Custom animation variants for Framer Motion (fallback if ReactBits not available)
@@ -115,30 +115,7 @@ export const fadeInFallback: AnimationVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { duration: 0.4 },
-  },
-};
-
-export const slideUp: AnimationVariants = {
-  hidden: { 
-    opacity: 0,
-    y: 20
-  },
-  visible: { 
-    opacity: 1,
-    y: 0,
-    transition: { 
-      duration: 0.4,
-      ease: [0.25, 0.1, 0.25, 1.0]
-    }
-  },
-  exit: { 
-    opacity: 0,
-    y: 10,
-    transition: { 
-      duration: 0.2,
-      ease: 'easeIn'
-    }
+    transition: { duration: 0.4 }
   }
 };
 

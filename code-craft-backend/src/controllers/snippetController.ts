@@ -64,7 +64,14 @@ export const getSnippets = catchAsync(async (req: Request, res: Response) => {
   const { language, search, userId } = req.query;
 
   // Build query
-  const query: any = {};
+  interface SnippetQuery {
+    language?: string;
+    userId?: string;
+    title?: { $regex: string; $options: string };
+    $text?: { $search: string };
+  }
+  
+  const query: SnippetQuery = {};
 
   if (language && typeof language === 'string') {
     query.language = language;

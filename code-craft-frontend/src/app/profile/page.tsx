@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
@@ -9,7 +9,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Edit2, Save, User, Code, Terminal, Star } from "lucide-react";
 
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -31,70 +31,39 @@ const profileSchema = z.object({
 type ProfileFormValues = z.infer<typeof profileSchema>;
 
 export default function ProfilePage() {
+  const { isAuthenticated, user, updateUserData } = useAuthStore();
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { user, isAuthenticated, updateUserData } = useAuthStore();
   const [isEditing, setIsEditing] = useState(false);
   
-  // Form setup
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-    reset,
-  } = useForm<ProfileFormValues>({
-    resolver: zodResolver(profileSchema),
-    defaultValues: {
-      name: user?.name || "",
-      bio: user?.bio || "",
-    },
-  });
-
-  // Redirect if not authenticated
-  if (typeof window !== "undefined" && !isAuthenticated) {
-    router.push("/login");
-    return null;
-  }
-
-  // Fetch user data
-  const { data: userData } = useQuery({
+  // Define queries but don't execute them yet
+  const userQuery = useQuery({
     queryKey: ["user"],
     queryFn: async () => {
       const response = await apiClient.get(API_ENDPOINTS.USERS.ME);
       return response.data;
     },
-    enabled: isAuthenticated,
-    onSuccess: (data) => {
-      // Update form values with fresh data
-      reset({
-        name: data.name,
-        bio: data.bio || "",
-      });
-      // Update auth store
-      updateUserData(data);
-    },
+    enabled: false,
   });
-
-  // Fetch execution stats
-  const { data: executionStats } = useQuery({
+  
+  const executionStatsQuery = useQuery({
     queryKey: ["executionStats"],
     queryFn: async () => {
       const response = await apiClient.get(API_ENDPOINTS.EXECUTIONS.STATS);
       return response.data;
     },
-    enabled: isAuthenticated,
+    enabled: false,
   });
-
-  // Fetch user's snippets
-  const { data: userSnippets } = useQuery({
+  
+  const userSnippetsQuery = useQuery({
     queryKey: ["userSnippets"],
     queryFn: async () => {
       const response = await apiClient.get(`${API_ENDPOINTS.SNIPPETS.BASE}?limit=3&author=${user?._id}`);
       return response.data;
     },
-    enabled: isAuthenticated && !!user?._id,
+    enabled: false,
   });
-
+  
   // Update profile mutation
   const updateProfile = useMutation({
     mutationFn: async (data: ProfileFormValues) => {
@@ -110,7 +79,51 @@ export default function ProfilePage() {
       toast.error("Failed to update profile");
     },
   });
+  
+  // Form setup
+  const { register, handleSubmit, formState: { errors }, reset } = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      name: user?.name || "",
+      bio: user?.bio || "",
+    },
+  });
 
+  // Enable queries when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      userQuery.refetch().then(({ data }) => {
+        if (data) {
+          reset({
+            name: data.name,
+            bio: data.bio || "",
+          });
+          updateUserData(data);
+        }
+      });
+      executionStatsQuery.refetch();
+      if (user?._id) {
+        userSnippetsQuery.refetch();
+      }
+    }
+  }, [isAuthenticated, user?._id, reset, updateUserData, userQuery, executionStatsQuery, userSnippetsQuery]);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (typeof window !== "undefined" && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isAuthenticated, router]);
+
+  if (typeof window !== "undefined" && !isAuthenticated) {
+    return null;
+  }
+
+  // Extract data from queries
+  const userData = userQuery.data;
+  const executionStats = executionStatsQuery.data;
+  const userSnippets = userSnippetsQuery.data;
+  
   // Handle form submission
   const onSubmit = (data: ProfileFormValues) => {
     updateProfile.mutate(data);
@@ -263,7 +276,7 @@ export default function ProfilePage() {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Most Used Language</span>
-                  <span className="font-medium">{executionStats.mostUsedLanguage || 'None'}</span>
+                  <span className="font-medium">{executionStats.mostUsedLanguage || "None"}</span>
                 </div>
               </>
             ) : (
@@ -295,7 +308,7 @@ export default function ProfilePage() {
               </div>
             ) : (
               <div className="text-center py-10">
-                <p className="text-muted-foreground mb-4">You haven't created any snippets yet.</p>
+                <p className="text-muted-foreground mb-4">You haven&apos;t created any snippets yet.</p>
                 <Button onClick={() => router.push("/editor")}>Create Snippet</Button>
               </div>
             )}
@@ -310,7 +323,7 @@ export default function ProfilePage() {
                 <Star className="mr-2 h-5 w-5" />
                 Starred Snippets
               </CardTitle>
-              <CardDescription>Snippets you've starred</CardDescription>
+              <CardDescription>Snippets you&apos;ve starred</CardDescription>
             </div>
             <Button variant="outline" size="sm" onClick={() => router.push("/snippets/starred")}>
               View All

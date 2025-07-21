@@ -33,7 +33,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 export default function RegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuthStore();
+  const { registerWithCredentials } = useAuthStore();
   
   const {
     register,
@@ -51,16 +51,16 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterFormValues) => {
     setIsLoading(true);
     
-    try {
-      const { token, user } = await authApi.register(data.name, data.email, data.password);
-      login(token, user);
+    const result = await registerWithCredentials(data.name, data.email, data.password);
+    
+    if (result.success) {
       toast.success("Account created successfully!");
       router.push("/");
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to create account. Please try again.");
-    } finally {
-      setIsLoading(false);
+    } else {
+      toast.error(result.error || "Failed to create account. Please try again.");
     }
+    
+    setIsLoading(false);
   };
 
   return (

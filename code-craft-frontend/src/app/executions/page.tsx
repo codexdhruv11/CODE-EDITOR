@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { formatDistanceToNow } from "date-fns";
@@ -15,20 +15,14 @@ import { API_ENDPOINTS, SUPPORTED_LANGUAGES } from "@/lib/constants";
 import { truncateText } from "@/lib/utils";
 
 export default function ExecutionsPage() {
-  const router = useRouter();
   const { isAuthenticated } = useAuthStore();
+  const router = useRouter();
   const [language, setLanguage] = useState("");
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
 
-  // Redirect if not authenticated
-  if (typeof window !== "undefined" && !isAuthenticated) {
-    router.push("/login");
-    return null;
-  }
-
-  // Fetch execution history
-  const { data, isLoading, error } = useQuery({
+  // Define query but don't execute it yet
+  const executionsQuery = useQuery({
     queryKey: ["executions", page, limit, language],
     queryFn: async () => {
       const params = new URLSearchParams({
@@ -43,8 +37,31 @@ export default function ExecutionsPage() {
       const response = await apiClient.get(`${API_ENDPOINTS.EXECUTIONS.BASE}?${params.toString()}`);
       return response.data;
     },
-    enabled: isAuthenticated,
+    enabled: false,
   });
+
+  // Enable query when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      executionsQuery.refetch();
+    }
+  }, [isAuthenticated, page, limit, language, executionsQuery]);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (typeof window !== "undefined" && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isAuthenticated, router]);
+
+  if (typeof window !== "undefined" && !isAuthenticated) {
+    return null;
+  }
+
+  // Extract data from query
+  const data = executionsQuery.data;
+  const isLoading = executionsQuery.isLoading;
+  const error = executionsQuery.error;
 
   // Handle language filter change
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -122,7 +139,7 @@ export default function ExecutionsPage() {
         ) : executions.length === 0 ? (
           <Card>
             <CardContent className="text-center py-10">
-              <p className="text-muted-foreground mb-4">You haven't executed any code yet.</p>
+              <p className="text-muted-foreground mb-4">You haven&apos;t executed any code yet.</p>
               <Button onClick={() => router.push("/editor")}>
                 Go to Editor
               </Button>

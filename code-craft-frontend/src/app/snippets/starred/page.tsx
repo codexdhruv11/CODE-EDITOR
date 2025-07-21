@@ -1,33 +1,28 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Search, Filter } from "lucide-react";
-import { SnippetCard } from "@/components/snippet/SnippetCard";
+import { Input } from "@/components/ui/input";
+import { Filter, Search } from "lucide-react";
 import { apiClient } from "@/lib/api";
-import { useResponsive } from "@/hooks/useResponsive";
 import { API_ENDPOINTS } from "@/lib/constants";
 import { useAuthStore } from "@/stores/authStore";
-import { useRouter } from "next/navigation";
+import { useResponsive } from "@/hooks/useResponsive";
+import { SnippetCard } from "@/components/snippet/SnippetCard";
 
 export default function StarredSnippetsPage() {
-  const [searchQuery, setSearchQuery] = useState("");
-  const [language, setLanguage] = useState("");
   const [page, setPage] = useState(1);
+  const [language, setLanguage] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
   const { isMobile, isTablet } = useResponsive();
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
   
-  // Redirect if not authenticated
-  if (typeof window !== "undefined" && !isAuthenticated) {
-    router.push("/login");
-    return null;
-  }
-  
-  const { data, isLoading, error } = useQuery({
+  // Define query but don't execute it yet
+  const snippetsQuery = useQuery({
     queryKey: ["starredSnippets", page, language, searchQuery],
     queryFn: async () => {
       const response = await apiClient.get(API_ENDPOINTS.SNIPPETS.STARRED, {
@@ -35,8 +30,31 @@ export default function StarredSnippetsPage() {
       });
       return response.data;
     },
-    enabled: isAuthenticated,
+    enabled: false,
   });
+
+  // Enable query when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      snippetsQuery.refetch();
+    }
+  }, [isAuthenticated, page, language, searchQuery, snippetsQuery]);
+
+  // Redirect if not authenticated
+  useEffect(() => {
+    if (typeof window !== "undefined" && !isAuthenticated) {
+      router.push("/login");
+    }
+  }, [isAuthenticated, router]);
+
+  if (typeof window !== "undefined" && !isAuthenticated) {
+    return null;
+  }
+
+  // Extract data from query
+  const data = snippetsQuery.data;
+  const isLoading = snippetsQuery.isLoading || snippetsQuery.isFetching;
+  const error = snippetsQuery.error;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -114,7 +132,7 @@ export default function StarredSnippetsPage() {
             </div>
           ) : data?.snippets?.length === 0 ? (
             <div className="text-center py-10">
-              <p className="mb-4 text-muted-foreground">You haven't starred any snippets yet.</p>
+              <p className="mb-4 text-muted-foreground">You haven&apos;t starred any snippets yet.</p>
               <Button onClick={() => router.push("/snippets")}>Browse Snippets</Button>
             </div>
           ) : (

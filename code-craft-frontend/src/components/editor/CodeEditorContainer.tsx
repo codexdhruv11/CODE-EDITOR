@@ -1,18 +1,21 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Editor, { OnMount } from "@monaco-editor/react";
-import { loader } from "@monaco-editor/react";
-import * as monaco from "monaco-editor";
+import Editor, { OnMount, loader } from "@monaco-editor/react";
 import { useTheme } from "next-themes";
 
 import { useResponsive } from "@/hooks/useResponsive";
 import { useEditorStore } from "@/stores/editorStore";
-import { CodeEditorContainerProps } from "@/types/ui";
-import { SUPPORTED_LANGUAGES } from "@/lib/constants";
+import { CodeEditorProps } from "@/types/ui";
 
-// Configure Monaco loader
-loader.config({ monaco });
+// Configure Monaco loader to use CDN
+if (typeof window !== 'undefined') {
+  loader.config({
+    paths: {
+      vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min/vs'
+    }
+  });
+}
 
 export function CodeEditorContainer({
   code,
@@ -22,10 +25,10 @@ export function CodeEditorContainer({
   height = "70vh",
   theme: propTheme,
   options = {},
-}: CodeEditorContainerProps) {
+}: CodeEditorProps & { options?: any }) {
   const { resolvedTheme } = useTheme();
-  const { isMobile, isTablet } = useResponsive();
-  const { editorSettings, updateEditorSettings } = useEditorStore();
+  const { isMobile } = useResponsive();
+  const { fontSize, wordWrap } = useEditorStore();
   const [mounted, setMounted] = useState(false);
 
   // Determine editor theme
@@ -33,18 +36,17 @@ export function CodeEditorContainer({
     (resolvedTheme === "dark" ? "vs-dark" : "vs-light");
 
   // Configure editor options based on device
-  const defaultOptions: monaco.editor.IStandaloneEditorConstructionOptions = {
-    ...editorSettings,
+  const defaultOptions = {
     readOnly,
     minimap: {
-      enabled: !isMobile && editorSettings.minimap.enabled,
+      enabled: !isMobile,
     },
-    fontSize: isMobile ? editorSettings.fontSize - 2 : editorSettings.fontSize,
-    wordWrap: isMobile ? "on" : editorSettings.wordWrap,
+    fontSize: isMobile ? fontSize - 2 : fontSize,
+    wordWrap: isMobile ? "on" : (wordWrap ? "on" : "off"),
     scrollBeyondLastLine: false,
     automaticLayout: true,
-    tabSize: editorSettings.tabSize,
-    lineNumbers: isMobile ? "off" : editorSettings.lineNumbers,
+    tabSize: 2,
+    lineNumbers: isMobile ? "off" : "on",
   };
 
   const editorOptions = {
@@ -59,7 +61,7 @@ export function CodeEditorContainer({
     // Configure editor for touch devices
     if (isMobile) {
       editor.updateOptions({
-        fontSize: editorSettings.fontSize - 2,
+        fontSize: fontSize - 2,
         lineNumbers: "off",
         folding: false,
         glyphMargin: false,
@@ -70,7 +72,7 @@ export function CodeEditorContainer({
     // Add keyboard shortcuts
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       // Trigger save action
-      console.log("Save shortcut triggered");
+      // Save shortcut triggered
     });
 
     // Set focus if not read-only
@@ -86,23 +88,10 @@ export function CodeEditorContainer({
     }
   };
 
-  // Update editor settings when device type changes
+  // Set mounted state on mount
   useEffect(() => {
-    if (!mounted) return;
-    
-    updateEditorSettings({
-      minimap: {
-        enabled: !isMobile && editorSettings.minimap.enabled,
-      },
-      fontSize: isMobile ? editorSettings.fontSize - 2 : editorSettings.fontSize,
-      wordWrap: isMobile ? "on" : editorSettings.wordWrap,
-      lineNumbers: isMobile ? "off" : editorSettings.lineNumbers,
-    });
-  }, [isMobile, isTablet, mounted, editorSettings.fontSize, editorSettings.minimap.enabled, editorSettings.wordWrap, editorSettings.lineNumbers, updateEditorSettings]);
-
-  // Get language configuration
-  const languageInfo = SUPPORTED_LANGUAGES.find(lang => lang.id === language) || 
-    SUPPORTED_LANGUAGES[0];
+    setMounted(true);
+  }, []);
 
   return (
     <div 
@@ -117,7 +106,7 @@ export function CodeEditorContainer({
           value={code}
           theme={editorTheme}
           options={editorOptions}
-          onChange={value => onChange(value || "")}
+          onChange={onChange ? (value => onChange(value || "")) : undefined}
           onMount={handleEditorDidMount}
           loading={<div className="flex h-full w-full items-center justify-center">Loading editor...</div>}
           className="rounded-md"

@@ -13,6 +13,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@radix-ui/react-label";
+import { LoginDebug } from "@/components/debug/LoginDebug";
 
 // Form validation schema
 const loginSchema = z.object({
@@ -25,7 +26,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuthStore();
+  const { loginWithCredentials } = useAuthStore();
   
   const {
     register,
@@ -42,20 +43,21 @@ export default function LoginPage() {
   const onSubmit = async (data: LoginFormValues) => {
     setIsLoading(true);
     
-    try {
-      const { token, user } = await authApi.login(data.email, data.password);
-      login(token, user);
+    const result = await loginWithCredentials(data.email, data.password);
+    
+    if (result.success) {
       toast.success("Successfully logged in!");
       router.push("/");
-    } catch (error: any) {
-      toast.error(error.response?.data?.message || "Failed to login. Please check your credentials.");
-    } finally {
-      setIsLoading(false);
+    } else {
+      toast.error(result.error || "Failed to login. Please check your credentials.");
     }
+    
+    setIsLoading(false);
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4 py-12">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
+      {process.env.NODE_ENV === 'development' && <LoginDebug />}
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-heading-2-mobile tablet:text-heading-2-desktop">Welcome back</CardTitle>
@@ -122,7 +124,7 @@ export default function LoginPage() {
         
         <CardFooter className="flex justify-center">
           <p className="text-sm text-muted-foreground">
-            Don&apos;t have an account?{" "}
+            Don't have an account?{" "}
             <Link href="/register" className="font-medium text-primary hover:underline">
               Sign up
             </Link>
@@ -131,4 +133,4 @@ export default function LoginPage() {
       </Card>
     </div>
   );
-} 
+}

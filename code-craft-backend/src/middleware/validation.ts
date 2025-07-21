@@ -6,7 +6,7 @@ import { JSDOM } from 'jsdom';
 
 // Setup DOMPurify for server-side HTML sanitization
 const window = new JSDOM('').window;
-const purify = DOMPurify(window as any);
+const purify = DOMPurify(window as unknown as Window & typeof globalThis);
 
 // Middleware to handle validation errors
 export const handleValidationErrors = (req: Request, res: Response, next: NextFunction): void => {

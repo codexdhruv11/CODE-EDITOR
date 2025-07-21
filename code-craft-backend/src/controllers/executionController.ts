@@ -124,7 +124,12 @@ export const getUserExecutions = catchAsync(async (req: Request, res: Response, 
   const { language } = req.query;
 
   // Build query
-  const query: any = { userId: req.user.id };
+  interface ExecutionQuery {
+    userId: string;
+    language?: string;
+  }
+  
+  const query: ExecutionQuery = { userId: req.user.id };
   if (language && typeof language === 'string') {
     if (!codeExecutionService.validateLanguage(language)) {
       return res.status(HTTP_STATUS.BAD_REQUEST).json({

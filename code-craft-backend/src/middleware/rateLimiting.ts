@@ -4,10 +4,18 @@ import { RATE_LIMITS, HTTP_STATUS, ERROR_CODES } from '../utils/constants';
 import { logger } from '../utils/logger';
 
 // Helper function to create rate limiters
+interface RateLimitMessage {
+  error: {
+    message: string;
+    code: string;
+    retryAfter?: number;
+  };
+}
+
 export const createRateLimiter = (options: {
   windowMs: number;
   max: number;
-  message: any;
+  message: RateLimitMessage;
   useAuth?: boolean;
 }) => {
   return rateLimit({

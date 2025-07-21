@@ -37,6 +37,13 @@ router.get(
   getUserExecutions
 );
 
+// Get supported languages (public)
+// CRITICAL: All languages shown as available to all users
+router.get(
+  '/languages',
+  getSupportedLanguages
+);
+
 // Get execution statistics for current user (requires auth)
 router.get(
   '/stats',
@@ -50,13 +57,6 @@ router.get(
   requireAuth,
   validateObjectId('id'),
   getExecutionById
-);
-
-// Get supported languages (public)
-// CRITICAL: All languages shown as available to all users
-router.get(
-  '/languages',
-  getSupportedLanguages
 );
 
 export default router;

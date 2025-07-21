@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEditorStore } from "@/stores/editorStore";
 import { useAuthStore } from "@/stores/authStore";
-import { CodeEditorContainer } from "@/components/editor/CodeEditorContainer";
+import { LazyCodeEditor } from "@/components/lazy/LazyCodeEditor";
 import { ExecutionPanel } from "@/components/editor/ExecutionPanel";
 import { Button } from "@/components/ui/button";
 import { useResponsive } from "@/hooks/useResponsive";
@@ -12,6 +12,7 @@ import { SUPPORTED_LANGUAGES } from "@/lib/constants";
 import { motion } from "framer-motion";
 import { Save, Share } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 export default function EditorPage() {
   const router = useRouter();
@@ -60,8 +61,18 @@ export default function EditorPage() {
 
   // Handle save snippet
   const handleSaveSnippet = () => {
-    // Implement save logic
-    console.log("Saving snippet:", { code, language });
+    if (!isAuthenticated) {
+      toast.error("Please sign in to save snippets");
+      router.push("/login");
+      return;
+    }
+    
+    // Navigate to create snippet page with current code and language
+    const params = new URLSearchParams({
+      language,
+      code,
+    });
+    router.push(`/snippets/create?${params.toString()}`);
   };
 
   return (
@@ -119,7 +130,7 @@ export default function EditorPage() {
           "flex-1 overflow-hidden",
           (isMobile && showExecution) && "hidden"
         )}>
-          <CodeEditorContainer
+          <LazyCodeEditor
             code={code}
             language={language}
             onChange={handleCodeChange}

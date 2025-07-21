@@ -29,7 +29,7 @@ app.use(helmet({
 
 // CORS configuration
 app.use(cors({
-  origin: config.corsOrigin.split(',').map(origin => origin.trim()),
+  origin: config.corsOrigin.split(',').map((origin: string) => origin.trim()),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
@@ -137,7 +137,13 @@ const startServer = async (): Promise<void> => {
 
 // Start server if not in test environment
 if (process.env.NODE_ENV !== 'test') {
-  startServer();
+  console.log('🚀 Starting Code-Craft Backend Server...');
+  console.log('Environment:', process.env.NODE_ENV || 'development');
+  console.log('Port:', process.env.PORT || '3001');
+  startServer().catch(error => {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  });
 }
 
 // Export app for testing

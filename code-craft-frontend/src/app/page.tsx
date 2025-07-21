@@ -13,14 +13,13 @@ import { API_ENDPOINTS } from "@/lib/constants";
 
 export default function Home() {
   const router = useRouter();
-  const { isAuthenticated, user, checkAuth } = useAuthStore();
+  const { isAuthenticated, user, isLoading } = useAuthStore();
   const [isClient, setIsClient] = useState(false);
   
-  // Check authentication on mount
+  // Set client flag on mount
   useEffect(() => {
     setIsClient(true);
-    checkAuth();
-  }, [checkAuth]);
+  }, []);
 
   // Fetch recent snippets
   const { data: recentSnippets } = useQuery({
@@ -44,8 +43,20 @@ export default function Home() {
     enabled: isAuthenticated && isClient,
   });
 
+  // Show loading during hydration or auth initialization
+  if (!isClient || isLoading) {
+    return (
+      <main className="flex min-h-screen flex-col items-center justify-center p-4">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </main>
+    );
+  }
+
   // If not authenticated, show landing page
-  if (isClient && !isAuthenticated) {
+  if (!isAuthenticated) {
     return (
       <main className="flex min-h-screen flex-col items-center justify-center p-4 tablet:p-8 desktop:p-24">
         <div className="z-10 w-full max-w-5xl items-center justify-between">

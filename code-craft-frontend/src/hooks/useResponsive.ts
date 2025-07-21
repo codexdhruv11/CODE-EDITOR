@@ -15,7 +15,7 @@ interface ResponsiveState {
 }
 
 export function useResponsive(): ResponsiveState {
-  // Default to mobile first approach
+  // Default to mobile first approach for SSR
   const [state, setState] = useState<ResponsiveState>({
     breakpoint: 'mobile',
     isMobile: true,
@@ -25,8 +25,13 @@ export function useResponsive(): ResponsiveState {
     isLandscape: false,
     isTouchDevice: false,
   });
+  
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    // Set client flag to prevent hydration mismatch
+    setIsClient(true);
+    
     // Check for touch capability
     const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
@@ -66,6 +71,19 @@ export function useResponsive(): ResponsiveState {
     // Cleanup
     return () => window.removeEventListener('resize', checkBreakpoint);
   }, []);
+
+  // Return default mobile state during SSR to prevent hydration mismatch
+  if (!isClient) {
+    return {
+      breakpoint: 'mobile',
+      isMobile: true,
+      isTablet: false,
+      isDesktop: false,
+      isPortrait: true,
+      isLandscape: false,
+      isTouchDevice: false,
+    };
+  }
 
   return state;
 } 

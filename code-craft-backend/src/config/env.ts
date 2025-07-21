@@ -15,17 +15,41 @@ export interface EnvironmentConfig {
   logFile: string;
 }
 
+interface RequiredEnvVar {
+  key: string;
+  description: string;
+}
+
 const validateRequiredEnvVars = (): void => {
-  const required = ['MONGODB_URI', 'JWT_SECRET'];
-  const missing = required.filter(key => !process.env[key]);
+  const required: RequiredEnvVar[] = [
+    { key: 'MONGODB_URI', description: 'MongoDB connection string' },
+    { key: 'JWT_SECRET', description: 'JWT secret key for token signing' }
+  ];
+  
+  const missing = required.filter(({ key }) => !process.env[key]);
   
   if (missing.length > 0) {
-    throw new Error(`Missing required environment variables: ${missing.join(', ')}`);
+    const errorMessage = `Missing required environment variables:\n${missing
+      .map(({ key, description }) => `  - ${key}: ${description}`)
+      .join('\n')}`;
+    throw new Error(errorMessage);
+  }
+
+  // Validate JWT_SECRET length for security
+  const jwtSecret = process.env.JWT_SECRET!;
+  if (jwtSecret.length < 32) {
+    throw new Error('JWT_SECRET must be at least 32 characters long for security');
   }
 };
 
 // Validate environment variables on startup
-validateRequiredEnvVars();
+try {
+  validateRequiredEnvVars();
+  console.log('Environment variables validated successfully');
+} catch (error) {
+  console.error('Environment validation failed:', (error as Error).message);
+  process.exit(1);
+}
 
 export const config: EnvironmentConfig = {
   port: parseInt(process.env.PORT || '3001', 10),

@@ -7,7 +7,7 @@ import { toast } from "sonner";
 import { Calendar, User, Edit, Trash2, Share } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardDescription } from "@/components/ui/card";
 import { CommentList } from "@/components/snippet/CommentList";
 import { StarButton } from "@/components/snippet/StarButton";
 import { CodeEditorContainer } from "@/components/editor/CodeEditorContainer";
@@ -18,20 +18,17 @@ import { API_ENDPOINTS } from "@/lib/constants";
 import { formatDistanceToNow } from "date-fns";
 
 export default function SnippetDetailPage() {
-  const params = useParams();
-  const router = useRouter();
-  const queryClient = useQueryClient();
   const { user } = useAuthStore();
-  const { isMobile } = useResponsive();
-  const [isEditing, setIsEditing] = useState(false);
-  
+  const router = useRouter();
+  const params = useParams();
+  const queryClient = useQueryClient();
   const snippetId = params.id as string;
-
-  // Fetch snippet details
+  
+  // Fetch snippet data
   const { data: snippet, isLoading, error } = useQuery({
     queryKey: ["snippet", snippetId],
     queryFn: async () => {
-      const response = await apiClient.get(API_ENDPOINTS.SNIPPETS.DETAIL(snippetId));
+      const response = await apiClient.get(`${API_ENDPOINTS.SNIPPETS.BASE}/${snippetId}`);
       return response.data;
     },
   });
@@ -48,7 +45,7 @@ export default function SnippetDetailPage() {
     },
     onError: (error) => {
       toast.error("Failed to delete snippet");
-      console.error("Delete error:", error);
+      // Handle delete error silently
     },
   });
 
@@ -86,7 +83,7 @@ export default function SnippetDetailPage() {
   if (error || !snippet) {
     return (
       <div className="container py-8 text-center">
-        <p className="text-destructive">Failed to load snippet. It may have been deleted or you don't have permission to view it.</p>
+        <p className="text-destructive">Failed to load snippet. It may have been deleted or you don&apos;t have permission to view it.</p>
         <Button className="mt-4" onClick={() => router.push("/snippets")}>
           Back to Snippets
         </Button>

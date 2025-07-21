@@ -1,24 +1,16 @@
 import { Router } from 'express';
-import { register, login } from '../controllers/authController';
+import { register, login, getMe } from '../controllers/authController';
 import { validateRegistration, validateLogin } from '../middleware/validation';
-import { createRateLimiter } from '../middleware/rateLimiting';
+import { authBruteForceProtection } from '../middleware/advancedRateLimiting';
+import { requireAuth } from '../middleware/auth';
 
 const router = Router();
 
-// Stricter rate limiting for auth endpoints to prevent brute force attacks
-const authLimiter = createRateLimiter({
-  windowMs: 60 * 1000, // 1 minute
-  max: 5, // 5 requests per minute
-  message: {
-    error: {
-      message: 'Too many authentication attempts, please try again later',
-      code: 'RATE_LIMIT_EXCEEDED',
-    },
-  },
-});
+// Authentication routes with enhanced brute force protection
+router.post('/register', authBruteForceProtection, validateRegistration, register);
+router.post('/login', authBruteForceProtection, validateLogin, login);
 
-// Authentication routes
-router.post('/register', authLimiter, validateRegistration, register);
-router.post('/login', authLimiter, validateLogin, login);
+// Protected auth routes
+router.get('/me', requireAuth, getMe);
 
 export default router;

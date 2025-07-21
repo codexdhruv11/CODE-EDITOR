@@ -36,7 +36,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     try {
-      const decoded = jwt.verify(token, config.jwtSecret) as any;
+      const decoded = jwt.verify(token, config.jwtSecret) as { userId: string };
       
       const user = await User.findById(decoded.userId);
       if (!user) {
@@ -92,7 +92,7 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
 
     // Try to authenticate but don't fail if it doesn't work
     try {
-      const decoded = jwt.verify(token, config.jwtSecret) as any;
+      const decoded = jwt.verify(token, config.jwtSecret) as { userId: string };
       const user = await User.findById(decoded.userId);
       
       if (user) {

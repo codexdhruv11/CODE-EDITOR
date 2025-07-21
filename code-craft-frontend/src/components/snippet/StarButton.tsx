@@ -37,7 +37,7 @@ export function StarButton({
     mutationFn: async () => {
       return await apiClient.post(API_ENDPOINTS.STARS.TOGGLE(snippetId));
     },
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       queryClient.invalidateQueries({ queryKey: ["snippet", snippetId] });
       queryClient.invalidateQueries({ queryKey: ["snippets"] });
       queryClient.invalidateQueries({ queryKey: ["starredSnippets"] });
