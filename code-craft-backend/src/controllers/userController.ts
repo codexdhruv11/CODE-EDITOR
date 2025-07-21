@@ -9,63 +9,6 @@ import { logger } from '../utils/logger';
  * Removes all premium features - no isPro checks or upgradeToPro functionality
  */
 
-/**
- * Sync user from authentication provider (Clerk webhook or manual sync)
- */
-export const syncUser = catchAsync(async (req: Request, res: Response) => {
-  const { clerkId, email, name } = req.body;
-
-  if (!clerkId || !email || !name) {
-    return res.status(HTTP_STATUS.BAD_REQUEST).json({
-      error: {
-        message: 'Missing required fields: clerkId, email, name',
-        code: ERROR_CODES.VALIDATION_ERROR,
-      },
-    });
-  }
-
-  try {
-    // Check if user already exists
-    let user = await User.findByClerkId(clerkId);
-
-    if (user) {
-      // Update existing user
-      user.email = email;
-      user.name = name;
-      await user.save();
-
-      logger.info(`User updated: ${clerkId}`, { email, name });
-    } else {
-      // Create new user
-      user = new User({
-        clerkId,
-        email,
-        name,
-      });
-      await user.save();
-
-      logger.info(`User created: ${clerkId}`, { email, name });
-    }
-
-    res.status(HTTP_STATUS.OK).json({
-      message: 'User synced successfully',
-      user: user.toJSON(),
-    });
-  } catch (error) {
-    logger.error('User sync failed:', error);
-    
-    if (error instanceof Error && error.message.includes('duplicate key')) {
-      return res.status(HTTP_STATUS.CONFLICT).json({
-        error: {
-          message: 'User with this email already exists',
-          code: ERROR_CODES.ALREADY_EXISTS,
-        },
-      });
-    }
-
-    throw error;
-  }
-});
 
 /**
  * Get current authenticated user profile
@@ -80,7 +23,7 @@ export const getCurrentUser = catchAsync(async (req: Request, res: Response) => 
     });
   }
 
-  const user = await User.findByClerkId(req.user.clerkId);
+  const user = await User.findById(req.user.id);
 
   if (!user) {
     return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -110,7 +53,7 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
   }
 
   const { name, email } = req.body;
-  const user = await User.findByClerkId(req.user.clerkId);
+  const user = await User.findById(req.user.id);
 
   if (!user) {
     return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -131,7 +74,7 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
 
   await user.save();
 
-  logger.info(`User profile updated: ${user.clerkId}`, { name, email });
+  logger.info(`User profile updated: ${user._id}`, { name, email });
 
   res.status(HTTP_STATUS.OK).json({
     message: 'User profile updated successfully',
@@ -145,15 +88,8 @@ export const updateUser = catchAsync(async (req: Request, res: Response) => {
 export const getUserStats = catchAsync(async (req: Request, res: Response) => {
   const { id: userId } = req.params;
 
-  // Find user by ID or clerkId
-  let user;
-  if (userId.match(/^[0-9a-fA-F]{24}$/)) {
-    // MongoDB ObjectId
-    user = await User.findById(userId);
-  } else {
-    // Assume it's a clerkId
-    user = await User.findByClerkId(userId);
-  }
+  // Find user by MongoDB ObjectId
+  const user = await User.findById(userId);
 
   if (!user) {
     return res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -187,7 +123,6 @@ export const getUserStats = catchAsync(async (req: Request, res: Response) => {
     const stats = {
       user: {
         id: user._id,
-        clerkId: user.clerkId,
         name: user.name,
         email: user.email,
         createdAt: user.createdAt,
@@ -218,12 +153,7 @@ export const getUserStats = catchAsync(async (req: Request, res: Response) => {
 export const getUserProfile = catchAsync(async (req: Request, res: Response) => {
   const { id: userId } = req.params;
 
-  let user;
-  if (userId.match(/^[0-9a-fA-F]{24}$/)) {
-    user = await User.findById(userId);
-  } else {
-    user = await User.findByClerkId(userId);
-  }
+  const user = await User.findById(userId);
 
   if (!user) {
     return res.status(HTTP_STATUS.NOT_FOUND).json({
