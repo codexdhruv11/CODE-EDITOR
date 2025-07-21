@@ -1,221 +1,230 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Terminal, Check, X, Save, Play, Clock } from 'lucide-react';
-import { useResponsive } from '@/hooks/useResponsive';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
+import { formatDistanceToNow } from "date-fns";
+import { Check, X, Clock, Code, ExternalLink } from "lucide-react";
+
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useAuthStore } from "@/stores/authStore";
+import { apiClient } from "@/lib/api";
+import { API_ENDPOINTS, SUPPORTED_LANGUAGES } from "@/lib/constants";
+import { truncateText } from "@/lib/utils";
 
 export default function ExecutionsPage() {
+  const router = useRouter();
+  const { isAuthenticated } = useAuthStore();
+  const [language, setLanguage] = useState("");
   const [page, setPage] = useState(1);
-  const [language, setLanguage] = useState('');
-  const { isMobile, isTablet } = useResponsive();
-  
+  const [limit] = useState(10);
+
+  // Redirect if not authenticated
+  if (typeof window !== "undefined" && !isAuthenticated) {
+    router.push("/login");
+    return null;
+  }
+
+  // Fetch execution history
   const { data, isLoading, error } = useQuery({
-    queryKey: ['executions', page, language],
+    queryKey: ["executions", page, limit, language],
     queryFn: async () => {
-      // This would be replaced with actual API call
-      return {
-        executions: [
-          {
-            id: '1',
-            language: 'javascript',
-            code: 'console.log("Hello, world!");',
-            status: 'success',
-            output: 'Hello, world!',
-            executionTime: 0.12,
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: '2',
-            language: 'python',
-            code: 'print("Hello, world!")',
-            status: 'success',
-            output: 'Hello, world!',
-            executionTime: 0.08,
-            createdAt: new Date().toISOString()
-          },
-          {
-            id: '3',
-            language: 'javascript',
-            code: 'console.log(x);',
-            status: 'error',
-            output: 'ReferenceError: x is not defined',
-            executionTime: 0.05,
-            createdAt: new Date().toISOString()
-          }
-        ],
-        hasMore: false
-      };
-    }
+      const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+      });
+      
+      if (language) {
+        params.append("language", language);
+      }
+      
+      const response = await apiClient.get(`${API_ENDPOINTS.EXECUTIONS.BASE}?${params.toString()}`);
+      return response.data;
+    },
+    enabled: isAuthenticated,
   });
 
-  const handleLoadMore = () => {
-    setPage((prev) => prev + 1);
-  };
-
+  // Handle language filter change
   const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setLanguage(e.target.value);
-    setPage(1);
+    setPage(1); // Reset to first page when filter changes
   };
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleString();
-  };
-
-  const renderStatusIcon = (status: string) => {
-    if (status === 'success') {
-      return <Check className="h-4 w-4 text-success" />;
-    } else {
-      return <X className="h-4 w-4 text-destructive" />;
+  // Handle pagination
+  const handleNextPage = () => {
+    if (data?.hasMore) {
+      setPage((prev) => prev + 1);
     }
   };
+
+  const handlePrevPage = () => {
+    if (page > 1) {
+      setPage((prev) => prev - 1);
+    }
+  };
+
+  // Handle re-run code
+  const handleReRunCode = (execution: any) => {
+    router.push(`/editor?language=${execution.language}&code=${encodeURIComponent(execution.code)}`);
+  };
+
+  // Handle save as snippet
+  const handleSaveAsSnippet = (execution: any) => {
+    router.push(`/editor?language=${execution.language}&code=${encodeURIComponent(execution.code)}&saveAsSnippet=true`);
+  };
+
+  const executions = data?.executions || [];
+  const totalExecutions = data?.total || 0;
 
   return (
     <div className="container py-8">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-heading-2-mobile desktop:text-heading-2-desktop">Execution History</h1>
-        
-        <div className="flex items-center">
-          <select
-            className="rounded-md border border-input bg-background px-3 py-2 mr-2"
-            value={language}
-            onChange={handleLanguageChange}
-          >
-            <option value="">All Languages</option>
-            <option value="javascript">JavaScript</option>
-            <option value="python">Python</option>
-            <option value="java">Java</option>
-            <option value="csharp">C#</option>
-          </select>
-        </div>
-      </div>
+      <div className="flex flex-col space-y-6">
+        <div className="flex flex-col tablet:flex-row justify-between items-start tablet:items-center gap-4">
+          <div>
+            <h1 className="text-heading-2-mobile tablet:text-heading-2-desktop">Execution History</h1>
+            <p className="text-muted-foreground">
+              View your past code executions and their results
+            </p>
+          </div>
 
-      {isLoading ? (
-        <div className="text-center py-10">Loading execution history...</div>
-      ) : error ? (
-        <div className="text-center py-10 text-destructive">
-          Failed to load execution history. Please try again.
+          <div className="flex items-center gap-2">
+            <select
+              value={language}
+              onChange={handleLanguageChange}
+              className="rounded-md border border-input bg-background px-3 py-2"
+              aria-label="Filter by language"
+            >
+              <option value="">All Languages</option>
+              {SUPPORTED_LANGUAGES.map((lang) => (
+                <option key={lang.id} value={lang.id}>
+                  {lang.name}
+                </option>
+              ))}
+            </select>
+
+            <Button 
+              variant="outline" 
+              onClick={() => router.push("/editor")}
+            >
+              New Execution
+            </Button>
+          </div>
         </div>
-      ) : data?.executions.length === 0 ? (
-        <Card className="p-6 text-center">
-          <Terminal className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
-          <h2 className="text-xl font-semibold mb-2">No executions yet</h2>
-          <p className="text-muted-foreground mb-4">
-            When you run code, your execution history will appear here.
-          </p>
-          <Button>Go to Editor</Button>
-        </Card>
-      ) : (
-        <>
-          {/* Desktop table view */}
-          {!isMobile && !isTablet && (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="text-left py-3 px-4">Language</th>
-                    <th className="text-left py-3 px-4">Code Preview</th>
-                    <th className="text-left py-3 px-4">Status</th>
-                    <th className="text-left py-3 px-4">Time</th>
-                    <th className="text-left py-3 px-4">Date</th>
-                    <th className="text-left py-3 px-4">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data?.executions.map((execution) => (
-                    <tr key={execution.id} className="border-b border-border hover:bg-muted/50">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center">
-                          <span className="capitalize">{execution.language}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="max-w-[300px] truncate font-mono text-sm">
-                          {execution.code}
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center">
-                          {renderStatusIcon(execution.status)}
-                          <span className="ml-2 capitalize">{execution.status}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4">
-                        {execution.executionTime.toFixed(2)}s
-                      </td>
-                      <td className="py-3 px-4">
-                        {formatDate(execution.createdAt)}
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex space-x-2">
-                          <Button size="sm" variant="outline">
-                            <Play className="h-4 w-4 mr-1" />
-                            Re-run
-                          </Button>
-                          <Button size="sm" variant="outline">
-                            <Save className="h-4 w-4 mr-1" />
-                            Save
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+
+        {isLoading ? (
+          <div className="text-center py-10">Loading execution history...</div>
+        ) : error ? (
+          <div className="text-center py-10 text-destructive">
+            Failed to load execution history. Please try again.
+          </div>
+        ) : executions.length === 0 ? (
+          <Card>
+            <CardContent className="text-center py-10">
+              <p className="text-muted-foreground mb-4">You haven't executed any code yet.</p>
+              <Button onClick={() => router.push("/editor")}>
+                Go to Editor
+              </Button>
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <div className="text-sm text-muted-foreground mb-4">
+              Showing {executions.length} of {totalExecutions} executions
             </div>
-          )}
 
-          {/* Mobile/Tablet card view */}
-          {(isMobile || isTablet) && (
             <div className="space-y-4">
-              {data?.executions.map((execution) => (
-                <Card key={execution.id} className="p-4">
-                  <div className="flex justify-between items-center mb-2">
-                    <div className="flex items-center">
-                      <span className="font-medium capitalize mr-2">{execution.language}</span>
-                      {renderStatusIcon(execution.status)}
-                      <span className="ml-1 text-sm capitalize">{execution.status}</span>
+              {executions.map((execution: any) => (
+                <Card key={execution._id} className="overflow-hidden">
+                  <CardHeader className="flex flex-row items-center justify-between py-4">
+                    <CardTitle className="text-base font-medium flex items-center">
+                      <Code className="mr-2 h-4 w-4" />
+                      {execution.language}
+                      <span className="mx-2 text-muted-foreground">•</span>
+                      <span className="text-sm font-normal text-muted-foreground">
+                        {formatDistanceToNow(new Date(execution.createdAt), { addSuffix: true })}
+                      </span>
+                    </CardTitle>
+                    <div className="flex items-center space-x-2">
+                      {execution.status === "success" ? (
+                        <span className="flex items-center text-success text-sm">
+                          <Check className="mr-1 h-4 w-4" />
+                          Success
+                        </span>
+                      ) : (
+                        <span className="flex items-center text-destructive text-sm">
+                          <X className="mr-1 h-4 w-4" />
+                          Failed
+                        </span>
+                      )}
+                      <span className="flex items-center text-sm text-muted-foreground">
+                        <Clock className="mr-1 h-4 w-4" />
+                        {execution.executionTime}ms
+                      </span>
                     </div>
-                    <div className="text-sm text-muted-foreground">
-                      {formatDate(execution.createdAt)}
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 tablet:grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Code</h3>
+                        <pre className="bg-muted p-3 rounded text-xs overflow-auto max-h-[200px]">
+                          <code>{truncateText(execution.code, 500)}</code>
+                        </pre>
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Output</h3>
+                        <pre className="bg-muted p-3 rounded text-xs overflow-auto max-h-[200px]">
+                          <code>{execution.output || execution.error || "No output"}</code>
+                        </pre>
+                      </div>
                     </div>
-                  </div>
-                  <div className="bg-muted p-3 rounded-md mb-3 font-mono text-sm overflow-x-auto">
-                    {execution.code}
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4 mr-1" />
-                      {execution.executionTime.toFixed(2)}s
-                    </div>
-                    <div className="flex space-x-2">
-                      <Button size="sm" variant="outline">
-                        <Play className="h-4 w-4" />
-                        <span className="sr-only">Re-run</span>
+                    <div className="flex justify-end mt-4 space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleReRunCode(execution)}
+                      >
+                        <ExternalLink className="mr-1 h-4 w-4" />
+                        Re-run
                       </Button>
-                      <Button size="sm" variant="outline">
-                        <Save className="h-4 w-4" />
-                        <span className="sr-only">Save</span>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleSaveAsSnippet(execution)}
+                      >
+                        <Code className="mr-1 h-4 w-4" />
+                        Save as Snippet
                       </Button>
                     </div>
-                  </div>
+                  </CardContent>
                 </Card>
               ))}
             </div>
-          )}
 
-          {/* Load more button */}
-          {data?.hasMore && (
-            <div className="mt-8 text-center">
-              <Button onClick={handleLoadMore} disabled={isLoading}>
-                Load More
+            {/* Pagination */}
+            <div className="flex justify-between items-center mt-6">
+              <Button
+                variant="outline"
+                onClick={handlePrevPage}
+                disabled={page === 1}
+              >
+                Previous
+              </Button>
+              <span className="text-sm text-muted-foreground">
+                Page {page}
+              </span>
+              <Button
+                variant="outline"
+                onClick={handleNextPage}
+                disabled={!data?.hasMore}
+              >
+                Next
               </Button>
             </div>
-          )}
-        </>
-      )}
+          </>
+        )}
+      </div>
     </div>
   );
 } 
