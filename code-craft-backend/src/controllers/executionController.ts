@@ -1,4 +1,4 @@
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { CodeExecution } from '../models';
 import { codeExecutionService } from '../services/codeExecution';
 import { catchAsync } from '../middleware/errorHandler';
@@ -15,7 +15,7 @@ import { logger } from '../utils/logger';
  * Execute code and save result
  * CRITICAL: No premium checks - all languages available to all authenticated users
  */
-export const executeCode = catchAsync(async (req: Request, res: Response) => {
+export const executeCode = catchAsync(async (req: Request, res: Response, next: NextFunction) = {
   if (!req.user) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
@@ -71,7 +71,7 @@ export const executeCode = catchAsync(async (req: Request, res: Response) => {
     });
 
     // Return execution result
-    res.status(HTTP_STATUS.OK).json({
+    return res.status(HTTP_STATUS.OK).json({
       execution: {
         id: codeExecution._id,
         success: executionResult.success,
@@ -103,23 +103,14 @@ export const executeCode = catchAsync(async (req: Request, res: Response) => {
       logger.error('Failed to save failed execution:', saveError);
     }
 
-    return res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
-      error: {
-        message: 'Code execution failed',
-        code: ERROR_CODES.EXTERNAL_API_ERROR,
-        details: {
-          language,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-      },
-    });
+    return next(error);
   }
 });
 
 /**
  * Get user's execution history with pagination
  */
-export const getUserExecutions = catchAsync(async (req: Request, res: Response) => {
+export const getUserExecutions = catchAsync(async (req: Request, res: Response, next: NextFunction) = {
   if (!req.user) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
@@ -159,10 +150,10 @@ export const getUserExecutions = catchAsync(async (req: Request, res: Response) 
 
     const response = buildPaginationResponse(executions, total, page, limit);
 
-    res.status(HTTP_STATUS.OK).json(response);
+    return res.status(HTTP_STATUS.OK).json(response);
   } catch (error) {
     logger.error('Failed to get user executions:', error);
-    throw error;
+    return next(error);
   }
 });
 
@@ -182,7 +173,7 @@ export const getSupportedLanguages = catchAsync(async (req: Request, res: Respon
 /**
  * Get execution statistics for current user
  */
-export const getExecutionStats = catchAsync(async (req: Request, res: Response) => {
+export const getExecutionStats = catchAsync(async (req: Request, res: Response, next: NextFunction) = {
   if (!req.user) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
@@ -209,7 +200,7 @@ export const getExecutionStats = catchAsync(async (req: Request, res: Response) 
       { $sort: { count: -1 } },
     ]);
 
-    res.status(HTTP_STATUS.OK).json({
+    return res.status(HTTP_STATUS.OK).json({
       stats: {
         ...stats,
         languageBreakdown,
@@ -217,14 +208,14 @@ export const getExecutionStats = catchAsync(async (req: Request, res: Response) 
     });
   } catch (error) {
     logger.error('Failed to get execution stats:', error);
-    throw error;
+    return next(error);
   }
 });
 
 /**
  * Get a specific execution by ID
  */
-export const getExecutionById = catchAsync(async (req: Request, res: Response) => {
+export const getExecutionById = catchAsync(async (req: Request, res: Response, next: NextFunction) = {
   if (!req.user) {
     return res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
@@ -250,5 +241,5 @@ export const getExecutionById = catchAsync(async (req: Request, res: Response) =
     });
   }
 
-  res.status(HTTP_STATUS.OK).json({ execution });
+  return res.status(HTTP_STATUS.OK).json({ execution });
 });
