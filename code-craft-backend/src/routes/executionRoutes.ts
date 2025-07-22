@@ -6,7 +6,7 @@ import {
   getExecutionStats,
   getExecutionById,
 } from '../controllers/executionController';
-import { requireAuth } from '../middleware/auth';
+import { requireAuth, optionalAuth } from '../middleware/auth';
 import {
   validateCodeExecution,
   validateObjectId,
@@ -19,11 +19,11 @@ const router = Router();
 // Apply general rate limiting to all execution routes
 router.use(generalLimiter);
 
-// Execute code (requires auth, heavily rate limited)
-// CRITICAL: All languages available to all authenticated users
+// Execute code (allows guest with stricter rate limiting)
+// UPDATED: Guest users allowed with stricter rate limits
 router.post(
   '/',
-  requireAuth,
+  optionalAuth,  // Changed from requireAuth to optionalAuth
   codeExecutionLimiter,
   validateCodeExecution,
   executeCode
