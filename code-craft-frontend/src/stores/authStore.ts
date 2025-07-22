@@ -25,6 +25,7 @@ interface AuthState {
   setToken: (token: string | null) => void;
   setError: (error: string | null) => void;
   setLoading: (isLoading: boolean) => void;
+  updateUserData: (userData: Partial<User>) => void;
   
   // New methods for complete auth flow
   loginWithCredentials: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
@@ -45,6 +46,9 @@ export const useAuthStore = create<AuthState>()(
       setToken: (token) => set({ token }),
       setError: (error) => set({ error }),
       setLoading: (isLoading) => set({ isLoading }),
+      updateUserData: (userData) => set((state) => ({
+        user: state.user ? { ...state.user, ...userData } : null
+      })),
       
       login: (token, user) => {
         set({

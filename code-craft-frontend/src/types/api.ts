@@ -5,6 +5,7 @@ export interface User {
   _id: string;
   name: string;
   email: string;
+  bio?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -15,6 +16,7 @@ export interface User {
 export interface Snippet {
   _id: string;
   title: string;
+  description?: string;
   language: string;
   code: string;
   author: {

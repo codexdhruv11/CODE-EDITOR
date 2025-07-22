@@ -9,12 +9,19 @@ interface EditorState {
   fontSize: number;
   wordWrap: boolean;
   autoSave: boolean;
+  executionResults: {
+    output: string;
+    status: 'idle' | 'success' | 'error';
+    executionTime: number | null;
+  };
   setCode: (code: string) => void;
   setLanguage: (language: string) => void;
   setTheme: (theme: 'vs-dark' | 'vs-light') => void;
   setFontSize: (fontSize: number) => void;
   setWordWrap: (wordWrap: boolean) => void;
   setAutoSave: (autoSave: boolean) => void;
+  setExecutionResults: (results: { output: string; status: 'idle' | 'success' | 'error'; executionTime: number | null }) => void;
+  clearExecutionResults: () => void;
   resetEditor: () => void;
 }
 
@@ -27,15 +34,33 @@ export const useEditorStore = create<EditorState>()(
       fontSize: 16,
       wordWrap: true,
       autoSave: true,
+      executionResults: {
+        output: '',
+        status: 'idle',
+        executionTime: null,
+      },
       setCode: (code) => set({ code }),
       setLanguage: (language) => set({ language }),
       setTheme: (theme) => set({ theme }),
       setFontSize: (fontSize) => set({ fontSize }),
       setWordWrap: (wordWrap) => set({ wordWrap }),
       setAutoSave: (autoSave) => set({ autoSave }),
+      setExecutionResults: (results) => set({ executionResults: results }),
+      clearExecutionResults: () => set({ 
+        executionResults: {
+          output: '',
+          status: 'idle',
+          executionTime: null,
+        }
+      }),
       resetEditor: () => set({
         code: '',
         language: SUPPORTED_LANGUAGES[0].id,
+        executionResults: {
+          output: '',
+          status: 'idle',
+          executionTime: null,
+        }
       }),
     }),
     {

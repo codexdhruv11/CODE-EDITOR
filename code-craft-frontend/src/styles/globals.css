@@ -104,6 +104,19 @@
     @apply rounded-md overflow-hidden;
   }
 
+  /* Save highlight animation */
+  .save-highlight {
+    background-color: hsl(var(--primary)) !important;
+    opacity: 0.1;
+    animation: saveFlash 0.2s ease-in-out;
+  }
+
+  @keyframes saveFlash {
+    0% { opacity: 0.2; }
+    50% { opacity: 0.3; }
+    100% { opacity: 0.1; }
+  }
+
   /* Ensure proper contrast for code syntax highlighting in both themes */
   .dark .monaco-editor {
     --monaco-foreground: hsl(var(--foreground));
