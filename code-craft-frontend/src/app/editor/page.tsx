@@ -8,7 +8,7 @@ import { LazyCodeEditor } from "@/components/lazy/LazyCodeEditor";
 import { ExecutionPanel } from "@/components/editor/ExecutionPanel";
 import { Button } from "@/components/ui/button";
 import { useResponsive } from "@/hooks/useResponsive";
-import { SUPPORTED_LANGUAGES } from "@/lib/constants";
+import { SUPPORTED_LANGUAGES, LANGUAGE_TEMPLATES } from "@/lib/constants";
 import { motion } from "framer-motion";
 import { Save, Share } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,40 +19,76 @@ export default function EditorPage() {
   const searchParams = useSearchParams();
   const { isMobile, isTablet } = useResponsive();
   const { isAuthenticated } = useAuthStore();
-  const { code: storedCode, language: storedLanguage, setCode, setLanguage } = useEditorStore();
+  const { code, language, setCode, setLanguage, clearExecutionResults } = useEditorStore();
   
-  // Get language from URL or use stored value
-  const languageParam = searchParams.get("language");
-  const [code, setLocalCode] = useState(storedCode || "// Write your code here\nconsole.log('Hello, world!');");
-  const [language, setLocalLanguage] = useState(
-    languageParam || storedLanguage || SUPPORTED_LANGUAGES[0].id
-  );
   const [showExecution, setShowExecution] = useState(!isMobile);
+  const [executionOutput, setExecutionOutput] = useState<string>('');
+  const [executionStatus, setExecutionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  const [executionTime, setExecutionTime] = useState<number | null>(null);
   
-  // Update editor store when code or language changes
+  // Initialize from URL params on mount
   useEffect(() => {
-    setCode(code);
-    setLanguage(language);
-  }, [code, language, setCode, setLanguage]);
+    const languageParam = searchParams.get("language");
+    const codeParam = searchParams.get("code");
+    
+    if (languageParam && languageParam !== language) {
+      setLanguage(languageParam);
+      // Only set template if no code is provided
+      if (!codeParam && !code) {
+        const template = LANGUAGE_TEMPLATES[languageParam];
+        if (template) {
+          setCode(template);
+        }
+      }
+    } else if (!code) {
+      // Set initial template if no code exists
+      const template = LANGUAGE_TEMPLATES[language] || LANGUAGE_TEMPLATES[SUPPORTED_LANGUAGES[0].id];
+      if (template) {
+        setCode(template);
+      }
+    }
+    
+    if (codeParam) {
+      setCode(codeParam);
+    }
+  }, [searchParams, code, language, setCode, setLanguage]);
   
   // Update URL when language changes
   useEffect(() => {
-    const url = new URL(window.location.href);
-    url.searchParams.set("language", language);
-    window.history.replaceState({}, "", url.toString());
+    if (typeof window !== 'undefined') {
+      const url = new URL(window.location.href);
+      url.searchParams.set("language", language);
+      window.history.replaceState({}, "", url.toString());
+    }
   }, [language]);
   
-  // Handle code change
-  const handleCodeChange = (value: string | undefined) => {
-    if (value !== undefined) {
-      setLocalCode(value);
+  // Handle code change with debouncing to reduce re-renders
+  const handleCodeChange = React.useCallback((value: string | undefined) => {
+    if (value !== undefined && value !== code) {
+      setCode(value);
     }
-  };
+  }, [code, setCode]);
   
-  // Handle language change
-  const handleLanguageChange = (newLanguage: string) => {
-    setLocalLanguage(newLanguage);
-  };
+  // Handle language change with execution result clearing
+  const handleLanguageChange = React.useCallback((newLanguage: string) => {
+    if (newLanguage !== language) {
+      setLanguage(newLanguage);
+      
+      // Clear execution results when switching languages
+      setExecutionOutput('');
+      setExecutionStatus('idle');
+      setExecutionTime(null);
+      
+      // If current code is empty or is the default template, update to new language template
+      const currentTemplate = LANGUAGE_TEMPLATES[language];
+      if (!code.trim() || code === currentTemplate) {
+        const newTemplate = LANGUAGE_TEMPLATES[newLanguage];
+        if (newTemplate) {
+          setCode(newTemplate);
+        }
+      }
+    }
+  }, [language, code, setLanguage, setCode]);
   
   // Toggle execution panel on mobile
   const toggleExecutionPanel = () => {
@@ -60,12 +96,20 @@ export default function EditorPage() {
   };
 
   // Handle save snippet
-  const handleSaveSnippet = () => {
+  const handleSaveSnippet = React.useCallback(() => {
     if (!isAuthenticated) {
       toast.error("Please sign in to save snippets");
       router.push("/login");
       return;
     }
+    
+    if (!code.trim()) {
+      toast.error("Cannot save empty code");
+      return;
+    }
+    
+    // Show immediate feedback
+    toast.success("Saving snippet...", { duration: 1000 });
     
     // Navigate to create snippet page with current code and language
     const params = new URLSearchParams({
@@ -73,6 +117,34 @@ export default function EditorPage() {
       code,
     });
     router.push(`/snippets/create?${params.toString()}`);
+  }, [isAuthenticated, code, language, router]);
+
+  // Handle share functionality
+  const handleShare = async () => {
+    const shareData = {
+      title: `Code snippet in ${language}`,
+      text: `Check out this ${language} code snippet`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share && isMobile) {
+        // Use native share on mobile
+        await navigator.share(shareData);
+      } else {
+        // Copy URL to clipboard on desktop
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Link copied to clipboard!");
+      }
+    } catch (error) {
+      // Fallback to copying URL
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Link copied to clipboard!");
+      } catch (clipboardError) {
+        toast.error("Failed to share");
+      }
+    }
   };
 
   return (
@@ -116,7 +188,7 @@ export default function EditorPage() {
           <Button 
             variant="outline" 
             size="sm"
-            onClick={() => {}}
+            onClick={handleShare}
           >
             <Share className="mr-1 h-4 w-4" />
             Share
@@ -135,6 +207,7 @@ export default function EditorPage() {
             language={language}
             onChange={handleCodeChange}
             height="100%"
+            onSave={handleSaveSnippet}
           />
         </div>
         
