@@ -1,6 +1,6 @@
 'use client';
 
-import axios from 'axios';
+import axios, { AxiosInstance } from 'axios';
 import { toast } from 'sonner';
 import { API_BASE_URL, API_ENDPOINTS, ERROR_CODES, STORAGE_KEYS } from './constants';
 
@@ -19,8 +19,11 @@ const createApiClient = (): AxiosInstance => {
   // Request interceptor to add auth token
   api.interceptors.request.use(
     (config) => {
+      console.log('API Request:', config.method?.toUpperCase(), config.url);
+      
       // Get token from localStorage
       const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
+      console.log('Auth token available:', !!token);
       
       // Add token to headers if it exists
       if (token && config.headers) {
