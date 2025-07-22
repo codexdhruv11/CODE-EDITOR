@@ -16,6 +16,11 @@ import { ISnippet } from '../models/Snippet';
  * Create new code snippet
  */
 export const createSnippet = catchAsync(async (req: Request, res: Response): Promise<void> => {
+  console.log('=== CREATE SNIPPET REQUEST ===');
+  console.log('Headers:', req.headers);
+  console.log('User:', req.user);
+  console.log('Body:', req.body);
+  
   if (!req.user) {
     res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
@@ -26,16 +31,21 @@ export const createSnippet = catchAsync(async (req: Request, res: Response): Pro
     return;
   }
 
-  const { title, language, code } = req.body;
+  const { title, description, language, code } = req.body;
+
+  console.log('Parsed data:', { title, description, language, code: code?.substring(0, 100) + '...' });
 
   try {
     const snippet = new Snippet({
       userId: req.user.id,
       title: title.trim(),
-      language,
+      description: description ? description.trim() : undefined,
+      programmingLanguage: language,
       code,
       userName: req.user.name,
     });
+    
+    console.log('Created snippet instance:', snippet);
 
     await snippet.save();
 
@@ -65,7 +75,7 @@ export const getSnippets = catchAsync(async (req: Request, res: Response) => {
 
   // Build query
   interface SnippetQuery {
-    language?: string;
+    programmingLanguage?: string;
     userId?: string;
     title?: { $regex: string; $options: string };
     $text?: { $search: string };
@@ -74,11 +84,12 @@ export const getSnippets = catchAsync(async (req: Request, res: Response) => {
   const query: SnippetQuery = {};
 
   if (language && typeof language === 'string') {
-    query.language = language;
+    query.programmingLanguage = language;
   }
 
   if (search && typeof search === 'string') {
-    query.$text = { $search: search };
+    // Use regex for partial matching instead of text search
+    query.title = { $regex: search, $options: 'i' };
   }
 
   if (userId && typeof userId === 'string') {
@@ -171,7 +182,7 @@ export const updateSnippet = catchAsync(async (req: Request, res: Response): Pro
   }
 
   const { id } = req.params;
-  const { title, language, code } = req.body;
+  const { title, description, language, code } = req.body;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     res.status(HTTP_STATUS.BAD_REQUEST).json({
@@ -211,8 +222,11 @@ export const updateSnippet = catchAsync(async (req: Request, res: Response): Pro
     if (title !== undefined) {
       snippet.title = title.trim();
     }
+    if (description !== undefined) {
+      snippet.description = description ? description.trim() : undefined;
+    }
     if (language !== undefined) {
-      snippet.language = language;
+      snippet.programmingLanguage = language;
     }
     if (code !== undefined) {
       snippet.code = code;
