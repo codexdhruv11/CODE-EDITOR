@@ -104,8 +104,8 @@ export function CommentList({ snippetId }: CommentListProps) {
     }
   };
 
-  const comments = data?.comments || [];
-  const commentCount = data?.total || 0;
+  const comments = data?.data || [];
+  const commentCount = data?.pagination?.total || 0;
 
   return (
     <Card>
@@ -167,7 +167,7 @@ export function CommentList({ snippetId }: CommentListProps) {
                   <div className="flex justify-between items-start mb-2">
                     <div className="flex items-center">
                       <User className="h-4 w-4 mr-2" />
-                      <span className="font-medium">{comment.author.name}</span>
+                      <span className="font-medium">{comment.userName || comment.userId?.name}</span>
                     </div>
                     <span className="text-xs text-muted-foreground">
                       {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
@@ -204,7 +204,7 @@ export function CommentList({ snippetId }: CommentListProps) {
                   )}
 
                   {/* Comment actions for author */}
-                  {user?._id === comment.author._id && editingCommentId !== comment._id && (
+                  {user?._id === (comment.userId?._id || comment.userId) && editingCommentId !== comment._id && (
                     <div className="flex justify-end space-x-2 mt-2">
                       <Button
                         variant="ghost"
@@ -232,7 +232,7 @@ export function CommentList({ snippetId }: CommentListProps) {
         </div>
       </CardContent>
 
-      {comments.length > 0 && data?.hasMore && (
+      {comments.length > 0 && data?.pagination?.hasNext && (
         <CardFooter>
           <Button variant="outline" className="w-full">
             Load More Comments
