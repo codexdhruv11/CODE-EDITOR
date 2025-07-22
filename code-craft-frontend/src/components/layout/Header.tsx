@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/stores/authStore";
 import { useUIStore } from "@/stores/uiStore";
 import { useResponsive } from "@/hooks/useResponsive";
+import { SearchModal } from "@/components/search/SearchModal";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,6 +27,7 @@ export function Header() {
   const { isSidebarOpen, setSidebarOpen } = useUIStore();
   const { isMobile, isTablet } = useResponsive();
   const [mounted, setMounted] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   const toggleSidebar = () => setSidebarOpen(!isSidebarOpen);
   
@@ -37,6 +39,19 @@ export function Header() {
   // Prevent hydration mismatch for theme
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  // Keyboard shortcut for search (Ctrl/Cmd + K)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   return (
@@ -64,7 +79,14 @@ export function Header() {
       
       <div className="flex items-center space-x-1 tablet:space-x-4">
         {/* Search Button */}
-        <Button variant="ghost" size="icon" aria-label="Search" className="hidden tablet:flex">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          aria-label="Search (Ctrl+K)" 
+          className="hidden tablet:flex"
+          onClick={() => setIsSearchOpen(true)}
+          title="Search snippets (Ctrl+K)"
+        >
           <Search className="h-5 w-5" />
         </Button>
         
@@ -122,6 +144,9 @@ export function Header() {
           </div>
         )}
       </div>
+      
+      {/* Search Modal */}
+      <SearchModal isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
     </div>
   );
-} 
+}
