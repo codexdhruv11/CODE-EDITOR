@@ -21,24 +21,24 @@ export default function StarredSnippetsPage() {
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
   
-  // Define query but don't execute it yet
+  // Define query with proper enabling conditions
   const snippetsQuery = useQuery({
     queryKey: ["starredSnippets", page, language, searchQuery],
     queryFn: async () => {
-      const response = await apiClient.get(API_ENDPOINTS.SNIPPETS.STARRED, {
-        params: { page, limit: 12, language, search: searchQuery }
-      });
-      return response.data;
+      try {
+        const response = await apiClient.get(API_ENDPOINTS.SNIPPETS.STARRED, {
+          params: { page, limit: 12, language, search: searchQuery }
+        });
+        return response.data;
+      } catch (error) {
+        console.error('Failed to fetch starred snippets:', error);
+        throw error;
+      }
     },
-    enabled: false,
+    enabled: isAuthenticated,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    retry: 1,
   });
-
-  // Enable query when authenticated
-  useEffect(() => {
-    if (isAuthenticated) {
-      snippetsQuery.refetch();
-    }
-  }, [isAuthenticated, page, language, searchQuery, snippetsQuery]);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -82,6 +82,7 @@ export default function StarredSnippetsPage() {
                   className="w-full rounded-md border border-input bg-background px-3 py-2"
                   value={language}
                   onChange={(e) => setLanguage(e.target.value)}
+                  aria-label="Filter snippets by programming language"
                 >
                   <option value="">All Languages</option>
                   <option value="javascript">JavaScript</option>
@@ -111,14 +112,20 @@ export default function StarredSnippetsPage() {
 
           {/* Search form */}
           <form onSubmit={handleSearch} className="mb-6">
+            <label htmlFor="search-snippets" className="sr-only">
+              Search starred snippets
+            </label>
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
               <Input
+                id="search-snippets"
                 type="search"
                 placeholder="Search starred snippets..."
                 className="pl-10"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search starred snippets"
+                role="searchbox"
               />
             </div>
           </form>
