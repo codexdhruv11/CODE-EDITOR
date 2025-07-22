@@ -36,14 +36,16 @@ export default function ProfilePage() {
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
   
-  // Define queries but don't execute them yet
+  // Define queries with proper enabling conditions
   const userQuery = useQuery({
     queryKey: ["user"],
     queryFn: async () => {
       const response = await apiClient.get(API_ENDPOINTS.USERS.ME);
       return response.data;
     },
-    enabled: false,
+    enabled: isAuthenticated,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    cacheTime: 10 * 60 * 1000, // 10 minutes
   });
   
   const executionStatsQuery = useQuery({
@@ -52,16 +54,30 @@ export default function ProfilePage() {
       const response = await apiClient.get(API_ENDPOINTS.EXECUTIONS.STATS);
       return response.data;
     },
-    enabled: false,
+    enabled: isAuthenticated,
+    staleTime: 2 * 60 * 1000, // 2 minutes
   });
   
   const userSnippetsQuery = useQuery({
-    queryKey: ["userSnippets"],
+    queryKey: ["userSnippets", user?._id],
     queryFn: async () => {
       const response = await apiClient.get(`${API_ENDPOINTS.SNIPPETS.BASE}?limit=3&author=${user?._id}`);
       return response.data;
     },
-    enabled: false,
+    enabled: isAuthenticated && !!user?._id,
+    staleTime: 1 * 60 * 1000, // 1 minute
+  });
+  
+  const starredSnippetsQuery = useQuery({
+    queryKey: ["starredSnippetsPreview"],
+    queryFn: async () => {
+      const response = await apiClient.get(API_ENDPOINTS.SNIPPETS.STARRED, {
+        params: { limit: 3 }
+      });
+      return response.data;
+    },
+    enabled: isAuthenticated,
+    staleTime: 2 * 60 * 1000, // 2 minutes
   });
   
   // Update profile mutation
@@ -81,32 +97,33 @@ export default function ProfilePage() {
   });
   
   // Form setup
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<ProfileFormValues>({
+  const { register, handleSubmit, formState: { errors }, reset, watch } = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
     defaultValues: {
       name: user?.name || "",
       bio: user?.bio || "",
     },
   });
+  
+  // Watch bio field for character count
+  const bioValue = watch("bio");
 
-  // Enable queries when authenticated
+  // Extract data from queries first
+  const userData = userQuery.data;
+  const executionStats = executionStatsQuery.data;
+  const userSnippets = userSnippetsQuery.data;
+  const starredSnippets = starredSnippetsQuery.data;
+  
+  // Update form when user data is loaded
   useEffect(() => {
-    if (isAuthenticated) {
-      userQuery.refetch().then(({ data }) => {
-        if (data) {
-          reset({
-            name: data.name,
-            bio: data.bio || "",
-          });
-          updateUserData(data);
-        }
+    if (userData) {
+      reset({
+        name: userData.name || '',
+        bio: userData.bio || '',
       });
-      executionStatsQuery.refetch();
-      if (user?._id) {
-        userSnippetsQuery.refetch();
-      }
     }
-  }, [isAuthenticated, user?._id, reset, updateUserData, userQuery, executionStatsQuery, userSnippetsQuery]);
+  }, [userData, reset]);
+  
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -119,11 +136,6 @@ export default function ProfilePage() {
     return null;
   }
 
-  // Extract data from queries
-  const userData = userQuery.data;
-  const executionStats = executionStatsQuery.data;
-  const userSnippets = userSnippetsQuery.data;
-  
   // Handle form submission
   const onSubmit = (data: ProfileFormValues) => {
     updateProfile.mutate(data);
@@ -210,7 +222,7 @@ export default function ProfilePage() {
                     </p>
                   )}
                   <p className="text-xs text-muted-foreground">
-                    {userData?.bio?.length || 0}/{API_LIMITS.BIO_MAX_LENGTH} characters
+                    {(bioValue || "").length}/{API_LIMITS.BIO_MAX_LENGTH} characters
                   </p>
                 </div>
 
@@ -330,12 +342,18 @@ export default function ProfilePage() {
             </Button>
           </CardHeader>
           <CardContent>
-            <div className="text-center py-10">
-              <p className="text-muted-foreground mb-4">View all your starred snippets in one place.</p>
-              <Button onClick={() => router.push("/snippets/starred")}>
-                View Starred Snippets
-              </Button>
-            </div>
+            {starredSnippets?.snippets?.length ? (
+              <div className="responsive-grid">
+                {starredSnippets.snippets.map((snippet) => (
+                  <SnippetCard key={snippet._id} snippet={snippet} />
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-10">
+                <p className="text-muted-foreground mb-4">You haven&apos;t starred any snippets yet.</p>
+                <Button onClick={() => router.push("/snippets")}>Browse Snippets</Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>
