@@ -25,13 +25,16 @@ export default function SnippetDetailPage() {
   const snippetId = params.id as string;
   
   // Fetch snippet data
-  const { data: snippet, isLoading, error } = useQuery({
+  const { data: snippetResponse, isLoading, error } = useQuery({
     queryKey: ["snippet", snippetId],
     queryFn: async () => {
       const response = await apiClient.get(`${API_ENDPOINTS.SNIPPETS.BASE}/${snippetId}`);
       return response.data;
     },
   });
+  
+  // Extract snippet from response
+  const snippet = snippetResponse?.snippet;
 
   // Delete snippet mutation
   const deleteSnippet = useMutation({
@@ -91,14 +94,14 @@ export default function SnippetDetailPage() {
     );
   }
 
-  const isOwner = user?._id === snippet.author._id;
+  const isOwner = user?._id === snippet.userId;
 
   return (
     <div className="container py-8">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-heading-3-mobile tablet:text-heading-3-desktop">{snippet.title}</h1>
         <div className="flex items-center space-x-2">
-          <StarButton snippetId={snippetId} initialStarCount={snippet.stars} />
+          <StarButton snippetId={snippetId} initialStarCount={snippet.starCount} />
           <Button variant="outline" size="sm" onClick={handleShare}>
             <Share className="mr-2 h-4 w-4" />
             Share
@@ -123,7 +126,7 @@ export default function SnippetDetailPage() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <div className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
-                {snippet.language}
+                {snippet.programmingLanguage}
               </div>
               <div className="flex items-center space-x-4 text-sm text-muted-foreground">
                 <div className="flex items-center space-x-1">
@@ -134,7 +137,7 @@ export default function SnippetDetailPage() {
                 </div>
                 <div className="flex items-center space-x-1">
                   <User className="h-4 w-4" />
-                  <span>{snippet.author.name}</span>
+                  <span>{snippet.userName}</span>
                 </div>
               </div>
             </CardHeader>
@@ -142,7 +145,7 @@ export default function SnippetDetailPage() {
               <div className="h-[500px] overflow-hidden rounded">
                 <CodeEditorContainer
                   code={snippet.code}
-                  language={snippet.language}
+                  language={snippet.programmingLanguage}
                   readOnly
                   height="100%"
                 />
