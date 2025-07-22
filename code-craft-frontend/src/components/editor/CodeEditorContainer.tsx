@@ -8,12 +8,35 @@ import { useResponsive } from "@/hooks/useResponsive";
 import { useEditorStore } from "@/stores/editorStore";
 import { CodeEditorProps } from "@/types/ui";
 
-// Configure Monaco loader to use CDN
+// Configure Monaco loader with optimizations
 if (typeof window !== 'undefined') {
+  // Preload Monaco Editor resources
+  const link = document.createElement('link');
+  link.rel = 'preconnect';
+  link.href = 'https://cdn.jsdelivr.net';
+  document.head.appendChild(link);
+  
+  const dnsLink = document.createElement('link');
+  dnsLink.rel = 'dns-prefetch';
+  dnsLink.href = 'https://cdn.jsdelivr.net';
+  document.head.appendChild(dnsLink);
+  
   loader.config({
     paths: {
       vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.43.0/min/vs'
-    }
+    },
+    'vs/nls': {
+      availableLanguages: {
+        '*': 'en',
+      },
+    },
+  });
+  
+  // Preload critical Monaco resources
+  loader.init().then(() => {
+    // Monaco is now ready
+  }).catch((error) => {
+    console.warn('Monaco Editor failed to initialize:', error);
   });
 }
 
@@ -25,7 +48,8 @@ export function CodeEditorContainer({
   height = "70vh",
   theme: propTheme,
   options = {},
-}: CodeEditorProps & { options?: any }) {
+  onSave,
+}: CodeEditorProps & { options?: any; onSave?: () => void }) {
   const { resolvedTheme } = useTheme();
   const { isMobile } = useResponsive();
   const { fontSize, wordWrap } = useEditorStore();
@@ -71,8 +95,29 @@ export function CodeEditorContainer({
 
     // Add keyboard shortcuts
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
-      // Trigger save action
-      // Save shortcut triggered
+      // Prevent default browser save
+      event?.preventDefault();
+      // Trigger save action with feedback
+      if (onSave) {
+        onSave();
+        // Show visual feedback
+        const model = editor.getModel();
+        if (model) {
+          // Briefly highlight the editor
+          const decoration = editor.deltaDecorations([], [{
+            range: new monaco.Range(1, 1, model.getLineCount(), 1),
+            options: {
+              className: 'save-highlight',
+              isWholeLine: true,
+            }
+          }]);
+          
+          // Remove highlight after 200ms
+          setTimeout(() => {
+            editor.deltaDecorations(decoration, []);
+          }, 200);
+        }
+      }
     });
 
     // Set focus if not read-only
