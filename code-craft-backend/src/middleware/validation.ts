@@ -67,6 +67,18 @@ export const validateUserUpdate = [
     .isEmail()
     .normalizeEmail()
     .withMessage('Must be a valid email address'),
+  body('bio')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Bio cannot exceed 500 characters')
+    .customSanitizer((value) => {
+      // Sanitize HTML content to prevent XSS
+      return purify.sanitize(value || '', {
+        ALLOWED_TAGS: [],
+        ALLOWED_ATTR: [],
+      });
+    }),
   handleValidationErrors,
 ];
 
@@ -76,6 +88,18 @@ export const validateSnippetCreation = [
     .trim()
     .isLength({ min: 1, max: API_CONSTANTS.MAX_TITLE_LENGTH })
     .withMessage(`Title must be between 1 and ${API_CONSTANTS.MAX_TITLE_LENGTH} characters`),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Description cannot exceed 500 characters')
+    .customSanitizer((value) => {
+      // Sanitize HTML content to prevent XSS
+      return purify.sanitize(value || '', {
+        ALLOWED_TAGS: [],
+        ALLOWED_ATTR: [],
+      });
+    }),
   body('language')
     .isIn(getSupportedLanguageIds())
     .withMessage(`Language must be one of: ${getSupportedLanguageIds().join(', ')}`),
@@ -91,6 +115,18 @@ export const validateSnippetUpdate = [
     .trim()
     .isLength({ min: 1, max: API_CONSTANTS.MAX_TITLE_LENGTH })
     .withMessage(`Title must be between 1 and ${API_CONSTANTS.MAX_TITLE_LENGTH} characters`),
+  body('description')
+    .optional()
+    .trim()
+    .isLength({ max: 500 })
+    .withMessage('Description cannot exceed 500 characters')
+    .customSanitizer((value) => {
+      // Sanitize HTML content to prevent XSS
+      return purify.sanitize(value || '', {
+        ALLOWED_TAGS: [],
+        ALLOWED_ATTR: [],
+      });
+    }),
   body('language')
     .optional()
     .isIn(getSupportedLanguageIds())
@@ -168,15 +204,23 @@ export const validateObjectId = (paramName: string) => [
 
 // Search validation
 export const validateSearch = [
-  query('q')
+  query('search')
     .optional()
     .trim()
-    .isLength({ min: 1, max: 100 })
+    .custom((value) => {
+      // Allow empty string or values between 1-100 characters
+      if (value === '' || value === undefined) return true;
+      return value.length >= 1 && value.length <= 100;
+    })
     .withMessage('Search query must be between 1 and 100 characters'),
   query('language')
     .optional()
-    .isIn(getSupportedLanguageIds())
-    .withMessage(`Language filter must be one of: ${getSupportedLanguageIds().join(', ')}`),
+    .custom((value) => {
+      // Allow empty string for "all languages"
+      if (value === '' || value === undefined) return true;
+      return getSupportedLanguageIds().includes(value);
+    })
+    .withMessage(`Language filter must be empty or one of: ${getSupportedLanguageIds().join(', ')}`),
   handleValidationErrors,
 ];
 
