@@ -95,16 +95,16 @@ export const SUPPORTED_LANGUAGES = [
     icon: 'logos:ruby',
   },
   {
-    id: 'php',
-    name: 'PHP',
-    extension: 'php',
-    icon: 'logos:php',
-  },
-  {
     id: 'rust',
     name: 'Rust',
     extension: 'rs',
     icon: 'logos:rust',
+  },
+  {
+    id: 'swift',
+    name: 'Swift',
+    extension: 'swift',
+    icon: 'logos:swift',
   },
 ];
 
@@ -182,4 +182,156 @@ export const DEFAULT_EDITOR_SETTINGS = {
   },
   lineNumbers: 'on',
   automaticLayout: true,
-}; 
+};
+
+/**
+ * Language Code Templates
+ */
+export const LANGUAGE_TEMPLATES: Record<string, string> = {
+  javascript: `// JavaScript example
+console.log('Hello, World!');
+
+// Function example
+function greet(name) {
+  return \`Hello, \${name}!\`;
+}
+
+console.log(greet('CodeCraft'));`,
+  
+  typescript: `// TypeScript example
+interface Person {
+  name: string;
+  age: number;
+}
+
+function greet(person: Person): string {
+  return \`Hello, \${person.name}! You are \${person.age} years old.\`;
+}
+
+const user: Person = { name: 'CodeCraft', age: 1 };
+console.log(greet(user));`,
+  
+  python: `# Python example
+print("Hello, World!")
+
+# Function example
+def greet(name):
+    return f"Hello, {name}!"
+
+print(greet("CodeCraft"))
+
+# List comprehension example
+numbers = [x**2 for x in range(5)]
+print(f"Squares: {numbers}")`,
+  
+  java: `public class Main {
+    public static void main(String[] args) {
+        System.out.println("Hello, World!");
+        
+        // Method example
+        String greeting = greet("CodeCraft");
+        System.out.println(greeting);
+    }
+    
+    public static String greet(String name) {
+        return "Hello, " + name + "!";
+    }
+}`,
+  
+  csharp: `using System;
+
+class Program {
+    static void Main() {
+        Console.WriteLine("Hello, World!");
+        
+        // Method example
+        string greeting = Greet("CodeCraft");
+        Console.WriteLine(greeting);
+    }
+    
+    static string Greet(string name) {
+        return $"Hello, {name}!";
+    }
+}`,
+  
+  cpp: `#include <iostream>
+#include <string>
+using namespace std;
+
+string greet(string name) {
+    return "Hello, " + name + "!";
+}
+
+int main() {
+    cout << "Hello, World!" << endl;
+    
+    // Function example
+    string greeting = greet("CodeCraft");
+    cout << greeting << endl;
+    
+    return 0;
+}`,
+  
+  go: `package main
+
+import "fmt"
+
+func greet(name string) string {
+    return fmt.Sprintf("Hello, %s!", name)
+}
+
+func main() {
+    fmt.Println("Hello, World!")
+    
+    // Function example
+    greeting := greet("CodeCraft")
+    fmt.Println(greeting)
+}`,
+  
+  ruby: `# Ruby example
+puts "Hello, World!"
+
+# Method example
+def greet(name)
+  "Hello, #{name}!"
+end
+
+puts greet("CodeCraft")
+
+# Array manipulation
+numbers = (1..5).map { |x| x ** 2 }
+puts "Squares: #{numbers}"`,
+  
+  rust: `// Rust example
+fn main() {
+    println!("Hello, World!");
+    
+    // Function example
+    let greeting = greet("CodeCraft");
+    println!("{}", greeting);
+    
+    // Vector example
+    let squares: Vec<i32> = (1..6).map(|x| x * x).collect();
+    println!("Squares: {:?}", squares);
+}
+
+fn greet(name: &str) -> String {
+    format!("Hello, {}!", name)
+}`,
+  
+  swift: `// Swift example
+import Foundation
+
+print("Hello, World!")
+
+// Function example
+func greet(_ name: String) -> String {
+    return "Hello, \(name)!"
+}
+
+print(greet("CodeCraft"))
+
+// Array manipulation
+let numbers = (1...5).map { $0 * $0 }
+print("Squares: \(numbers)")`,
+};
