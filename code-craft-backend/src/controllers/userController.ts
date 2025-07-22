@@ -55,7 +55,7 @@ export const updateUser = catchAsync(async (req: Request, res: Response): Promis
     return;
   }
 
-  const { name, email } = req.body;
+  const { name, email, bio } = req.body;
   const user = await User.findById(req.user.id);
 
   if (!user) {
@@ -75,10 +75,13 @@ export const updateUser = catchAsync(async (req: Request, res: Response): Promis
   if (email !== undefined) {
     user.email = email;
   }
+  if (bio !== undefined) {
+    user.bio = bio;
+  }
 
   await user.save();
 
-  logger.info(`User profile updated: ${user._id}`, { name, email });
+  logger.info(`User profile updated: ${user._id}`, { name, email, bio: bio ? 'updated' : 'unchanged' });
 
   res.status(HTTP_STATUS.OK).json({
     message: 'User profile updated successfully',
