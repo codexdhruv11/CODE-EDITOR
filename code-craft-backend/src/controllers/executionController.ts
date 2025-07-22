@@ -13,17 +13,17 @@ import { logger } from '../utils/logger';
 
 /**
  * Execute code and save result
- * CRITICAL: No premium checks - all languages available to all authenticated users
+ * UPDATED: Allow guest execution with stricter rate limiting
  */
 export const executeCode = catchAsync(async (req: Request, res: Response, next: NextFunction) => {
-  if (!req.user) {
-    return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-      error: {
-        message: 'User not authenticated',
-        code: ERROR_CODES.UNAUTHORIZED,
-      },
-    });
-  }
+  const isGuest = !req.user;
+  const userId = req.user?.id || `guest-${req.ip}`;
+  const userIdentifier = req.user ? `user-${req.user.id}` : `guest-${req.ip}`;
+  
+  logger.info(`Code execution request`, {
+    userType: isGuest ? 'guest' : 'authenticated',
+    userId: userIdentifier,
+  });
 
   const { language, code } = req.body;
 
@@ -42,65 +42,75 @@ export const executeCode = catchAsync(async (req: Request, res: Response, next: 
 
   try {
     logger.info(`Code execution started`, {
-      userId: req.user.id,
+      userId: userIdentifier,
       language,
       codeLength: code.length,
+      isGuest,
     });
 
     // Execute code using Piston API
     const executionResult = await codeExecutionService.executeCode(language, code);
 
-    // Save execution result to database
-    const codeExecution = new CodeExecution({
-      userId: req.user.id,
-      language,
-      code,
-      output: executionResult.output,
-      error: executionResult.error,
-      executionTime: executionResult.executionTime,
-    });
+    // Only save execution result to database for authenticated users
+    let executionId = null;
+    if (!isGuest) {
+      const codeExecution = new CodeExecution({
+        userId: req.user!.id,
+        language,
+        code,
+        output: executionResult.output,
+        error: executionResult.error,
+        executionTime: executionResult.executionTime,
+      });
 
-    await codeExecution.save();
+      await codeExecution.save();
+      executionId = codeExecution._id;
+    }
 
-    logger.info(`Code execution completed and saved`, {
-      userId: req.user.id,
+    logger.info(`Code execution completed`, {
+      userId: userIdentifier,
       language,
       success: executionResult.success,
       executionTime: executionResult.executionTime,
-      executionId: codeExecution._id,
+      executionId,
+      isGuest,
     });
 
     // Return execution result
     return res.status(HTTP_STATUS.OK).json({
       execution: {
-        id: codeExecution._id,
+        id: executionId,
         success: executionResult.success,
         output: executionResult.output,
         error: executionResult.error,
         executionTime: executionResult.executionTime,
         language,
-        createdAt: codeExecution.createdAt,
+        createdAt: new Date(),
+        isGuest,
       },
     });
   } catch (error) {
     logger.error('Code execution failed:', {
-      userId: req.user.id,
+      userId: userIdentifier,
       language,
       error: error instanceof Error ? error.message : 'Unknown error',
+      isGuest,
     });
 
-    // Save failed execution to database for debugging
-    try {
-      const failedExecution = new CodeExecution({
-        userId: req.user.id,
-        language,
-        code,
-        error: error instanceof Error ? error.message : 'Unknown execution error',
-        executionTime: 0,
-      });
-      await failedExecution.save();
-    } catch (saveError) {
-      logger.error('Failed to save failed execution:', saveError);
+    // Save failed execution to database for debugging (authenticated users only)
+    if (!isGuest) {
+      try {
+        const failedExecution = new CodeExecution({
+          userId: req.user!.id,
+          language,
+          code,
+          error: error instanceof Error ? error.message : 'Unknown execution error',
+          executionTime: 0,
+        });
+        await failedExecution.save();
+      } catch (saveError) {
+        logger.error('Failed to save failed execution:', saveError);
+      }
     }
 
     return next(error);
