@@ -5,6 +5,7 @@ export interface IUser extends Document {
   email: string;
   password: string;
   name: string;
+  bio?: string;
   createdAt: Date;
   updatedAt: Date;
   toJSON(): any;
@@ -43,6 +44,13 @@ const userSchema = new Schema<IUser, UserModel, IUserMethods>(
       required: true,
       trim: true,
       maxlength: 100,
+    },
+    bio: {
+      type: String,
+      required: false,
+      trim: true,
+      maxlength: 500,
+      default: '',
     },
   },
   {
