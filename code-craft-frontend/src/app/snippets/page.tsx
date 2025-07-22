@@ -95,20 +95,20 @@ export default function SnippetsPage() {
             <div className="text-center py-10 text-destructive">
               Failed to load snippets. Please try again.
             </div>
-          ) : data?.snippets?.length === 0 ? (
+          ) : data?.data?.length === 0 ? (
             <div className="text-center py-10">
               No snippets found. Try adjusting your filters.
             </div>
           ) : (
             <>
               <div className="responsive-grid">
-                {data?.snippets?.map((snippet) => (
+                {data?.data?.map((snippet) => (
                   <LazySnippetCard key={snippet.id} snippet={snippet} />
                 ))}
               </div>
 
               {/* Load more button */}
-              {data?.hasMore && (
+              {data?.pagination?.hasNext && (
                 <div className="mt-8 text-center">
                   <Button onClick={handleLoadMore} disabled={isLoading}>
                     Load More
