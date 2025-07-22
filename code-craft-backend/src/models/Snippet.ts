@@ -4,7 +4,8 @@ import { getSupportedLanguageIds } from '../utils/constants';
 export interface ISnippet extends Document {
   userId: Types.ObjectId;
   title: string;
-  language: string;
+  description?: string;
+  programmingLanguage: string;
   code: string;
   userName: string;
   createdAt: Date;
@@ -34,14 +35,19 @@ const snippetSchema = new Schema<ISnippet, SnippetModel, ISnippetMethods>(
       trim: true,
       maxlength: 100,
     },
-    language: {
+    description: {
+      type: String,
+      trim: true,
+      maxlength: 500,
+    },
+    programmingLanguage: {
       type: String,
       required: true,
       validate: {
         validator: function(value: string) {
           return getSupportedLanguageIds().includes(value);
         },
-        message: 'Invalid language. Must be one of the supported languages.',
+        message: 'Invalid programming language. Must be one of the supported languages.',
       },
     },
     code: {
@@ -71,7 +77,7 @@ const snippetSchema = new Schema<ISnippet, SnippetModel, ISnippetMethods>(
 snippetSchema.index({ userId: 1 });
 snippetSchema.index({ createdAt: -1 });
 snippetSchema.index({ title: 'text' });
-snippetSchema.index({ language: 1 });
+snippetSchema.index({ programmingLanguage: 1 });
 snippetSchema.index({ userId: 1, createdAt: -1 });
 
 // Virtual fields
