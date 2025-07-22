@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Play, Save, CheckCircle2, AlertCircle, Clock } from "lucide-react";
+import { Play, Save, CheckCircle2, AlertCircle, Clock, Info, Trash2 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -11,6 +11,7 @@ import { ExecutionPanelProps } from "@/types/ui";
 import { executionApi } from "@/lib/api";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/authStore";
+import { useEditorStore } from "@/stores/editorStore";
 import { useRouter } from "next/navigation";
 
 export function ExecutionPanel({
@@ -21,55 +22,72 @@ export function ExecutionPanel({
 }: ExecutionPanelProps) {
   const router = useRouter();
   const { isAuthenticated } = useAuthStore();
+  const { executionResults, setExecutionResults, clearExecutionResults } = useEditorStore();
   const [isSaving, setIsSaving] = useState(false);
-  const [output, setOutput] = useState<string>('');
-  const [executionTime, setExecutionTime] = useState<number | null>(null);
-  const [executionStatus, setExecutionStatus] = useState<'idle' | 'success' | 'error'>('idle');
+  
+  // Use store values
+  const { output, status: executionStatus, executionTime } = executionResults;
 
   const { mutate: executeCode, isPending } = useMutation({
     mutationFn: async () => {
-      // Check authentication first
-      if (!isAuthenticated) {
-        toast.error("Please sign in to execute code");
-        router.push("/login");
-        throw new Error("Not authenticated");
-      }
-
       const response = await executionApi.executeCode(language, code);
       return response.execution;
     },
     onSuccess: (data) => {
-      if (data.success) {
-        setOutput(data.output || '');
-        setExecutionStatus('success');
-      } else {
-        setOutput(data.error || 'Execution failed');
-        setExecutionStatus('error');
-      }
-      setExecutionTime(data.executionTime);
+      const results = {
+        output: data.success ? (data.output || '') : (data.error || 'Execution failed'),
+        status: data.success ? 'success' as const : 'error' as const,
+        executionTime: data.executionTime
+      };
+      setExecutionResults(results);
     },
     onError: (error: any) => {
-      console.error('Execution error:', error);
+      // Remove console.error for production
       const errorMessage = error.response?.data?.error?.message || 
                           error.message || 
                           'Failed to execute code. Please try again.';
-      setOutput(errorMessage);
-      setExecutionStatus('error');
+      
+      setExecutionResults({
+        output: errorMessage,
+        status: 'error',
+        executionTime: null
+      });
       
       // Show toast for better UX
-      toast.error(errorMessage);
+      if (error.response?.status === 429) {
+        const rateLimitMessage = error.response?.data?.error?.isGuest 
+          ? 'Guest rate limit exceeded. Please sign in for higher limits.'
+          : 'Rate limit exceeded. Please wait a moment before trying again.';
+        toast.error(rateLimitMessage);
+      } else {
+        toast.error(errorMessage);
+      }
     },
   });
 
   const handleExecute = () => {
     if (!code.trim()) {
-      setOutput('Error: Please enter some code to execute.');
-      setExecutionStatus('error');
+      setExecutionResults({
+        output: 'Error: Please enter some code to execute.',
+        status: 'error',
+        executionTime: null
+      });
       return;
     }
 
-    setExecutionStatus('idle');
+    // Clear previous results and show loading state
+    setExecutionResults({
+      output: '',
+      status: 'idle',
+      executionTime: null
+    });
     executeCode();
+  };
+  
+  // Handle clear output
+  const handleClearOutput = () => {
+    clearExecutionResults();
+    toast.success('Output cleared');
   };
 
   // Handle save as snippet
@@ -108,6 +126,17 @@ export function ExecutionPanel({
                 {!isPending && <Play className="mr-1 h-4 w-4" />}
                 Run
               </Button>
+              
+              {output && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearOutput}
+                  title="Clear output"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
               
               {executionStatus === 'success' && (
                 <Button
@@ -172,9 +201,25 @@ export function ExecutionPanel({
         </CardContent>
         
         <CardFooter className="border-t px-4 py-2">
-          <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
-            <span>Language: {language}</span>
-            <span>Execution timeout: 30s</span>
+          <div className="space-y-2">
+            <div className="flex w-full items-center justify-between text-xs text-muted-foreground">
+              <span>Language: {language}</span>
+              <span>Execution timeout: 30s</span>
+            </div>
+            {!isAuthenticated && (
+              <div className="flex items-center gap-2 text-xs text-warning">
+                <Info className="h-3 w-3" />
+                <span>Guest mode: Limited to 5 executions per minute.</span>
+                <Button
+                  variant="link"
+                  size="sm"
+                  className="h-auto p-0 text-xs text-primary"
+                  onClick={() => router.push("/login")}
+                >
+                  Sign in for more
+                </Button>
+              </div>
+            )}
           </div>
         </CardFooter>
       </Card>
