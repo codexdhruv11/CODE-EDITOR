@@ -16,13 +16,14 @@ import { StarButton } from './StarButton';
 
 export function SnippetCard({ snippet, onClick, className }: SnippetCardProps) {
   // Find language info
-  const languageInfo = SUPPORTED_LANGUAGES.find(lang => lang.id === snippet.language) || 
+  const languageInfo = SUPPORTED_LANGUAGES.find(lang => lang.id === snippet.programmingLanguage) || 
     SUPPORTED_LANGUAGES[0];
   
   // Format code preview (truncate if needed)
   const codePreview = truncateText(snippet.code, 200);
   
   const commentCount = snippet.commentCount || snippet.comments || 0;
+  const starCount = snippet.starCount || snippet.stars || 0;
   
   return (
     <motion.div variants={staggeredItem}>
@@ -42,7 +43,7 @@ export function SnippetCard({ snippet, onClick, className }: SnippetCardProps) {
               <div className="flex items-center space-x-3 text-sm text-muted-foreground">
                 <div className="flex items-center space-x-1">
                   <Star className="h-4 w-4" fill={snippet.isStarred ? "currentColor" : "none"} />
-                  <span>{snippet.stars}</span>
+                  <span>{starCount}</span>
                 </div>
                 <div className="flex items-center space-x-1">
                   <MessageSquare className="h-4 w-4" />
@@ -65,7 +66,7 @@ export function SnippetCard({ snippet, onClick, className }: SnippetCardProps) {
           
           <CardFooter className="flex items-center justify-between pt-0 text-xs text-muted-foreground">
             <div className="flex items-center">
-              <span>By {snippet.author.name}</span>
+              <span>By {snippet.userName}</span>
             </div>
             <div className="flex items-center">
               <Calendar className="mr-1 h-3 w-3" />
@@ -76,7 +77,7 @@ export function SnippetCard({ snippet, onClick, className }: SnippetCardProps) {
           <CardFooter className="px-4 py-3 border-t flex justify-between">
             <div className="flex items-center space-x-3">
               <div className="flex items-center">
-                <StarButton snippetId={snippet._id} initialStarCount={snippet.stars} isSmall />
+                <StarButton snippetId={snippet._id} initialStarCount={starCount} isSmall />
               </div>
             </div>
           </CardFooter>
