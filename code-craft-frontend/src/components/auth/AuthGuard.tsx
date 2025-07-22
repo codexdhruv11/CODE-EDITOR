@@ -13,6 +13,7 @@ const protectedRoutes = [
   '/editor',
   '/profile',
   '/snippets/starred',
+  '/snippets/create',
   '/executions',
 ];
 
