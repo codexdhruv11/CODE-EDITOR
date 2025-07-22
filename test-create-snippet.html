@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Create Snippet</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Test Create Snippet</h1>
+    
+    <div style="margin: 20px;">
+        <h2>1. Login First</h2>
+        <input type="email" id="email" placeholder="Email" value="test@example.com">
+        <input type="password" id="password" placeholder="Password" value="password123">
+        <button onclick="login()">Login</button>
+        <div id="login-status"></div>
+    </div>
+    
+    <div style="margin: 20px;">
+        <h2>2. Create Snippet</h2>
+        <input type="text" id="title" placeholder="Title" value="Test Snippet">
+        <textarea id="description" placeholder="Description">Test description</textarea>
+        <select id="language">
+            <option value="javascript">JavaScript</option>
+            <option value="python">Python</option>
+        </select>
+        <textarea id="code" placeholder="Code" rows="5">console.log('Hello World');</textarea>
+        <button onclick="createSnippet()">Create Snippet</button>
+        <div id="create-status"></div>
+    </div>
+    
+    <div style="margin: 20px;">
+        <h2>3. Response</h2>
+        <pre id="response"></pre>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3001/api';
+        let authToken = null;
+
+        async function login() {
+            try {
+                const email = document.getElementById('email').value;
+                const password = document.getElementById('password').value;
+                
+                const response = await axios.post(`${API_URL}/auth/login`, {
+                    email,
+                    password
+                });
+                
+                authToken = response.data.token;
+                localStorage.setItem('token', authToken);
+                
+                document.getElementById('login-status').innerHTML = 
+                    `<p style="color: green;">Login successful! Token: ${authToken.substring(0, 20)}...</p>`;
+                document.getElementById('response').textContent = JSON.stringify(response.data, null, 2);
+            } catch (error) {
+                console.error('Login error:', error);
+                document.getElementById('login-status').innerHTML = 
+                    `<p style="color: red;">Login failed: ${error.response?.data?.error?.message || error.message}</p>`;
+                document.getElementById('response').textContent = JSON.stringify(error.response?.data || error, null, 2);
+            }
+        }
+
+        async function createSnippet() {
+            try {
+                const token = authToken || localStorage.getItem('token');
+                if (!token) {
+                    alert('Please login first!');
+                    return;
+                }
+
+                const title = document.getElementById('title').value;
+                const description = document.getElementById('description').value;
+                const language = document.getElementById('language').value;
+                const code = document.getElementById('code').value;
+
+                console.log('Creating snippet with:', { title, description, language, code });
+
+                const response = await axios.post(
+                    `${API_URL}/snippets`,
+                    {
+                        title,
+                        description,
+                        language,
+                        code
+                    },
+                    {
+                        headers: {
+                            'Authorization': `Bearer ${token}`,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+                
+                document.getElementById('create-status').innerHTML = 
+                    `<p style="color: green;">Snippet created successfully! ID: ${response.data.snippet._id}</p>`;
+                document.getElementById('response').textContent = JSON.stringify(response.data, null, 2);
+            } catch (error) {
+                console.error('Create snippet error:', error);
+                document.getElementById('create-status').innerHTML = 
+                    `<p style="color: red;">Create failed: ${error.response?.data?.error?.message || error.message}</p>`;
+                document.getElementById('response').textContent = JSON.stringify(error.response?.data || error, null, 2);
+            }
+        }
+
+        // Check if token exists on load
+        window.onload = () => {
+            const token = localStorage.getItem('token');
+            if (token) {
+                authToken = token;
+                document.getElementById('login-status').innerHTML = 
+                    `<p style="color: blue;">Using existing token from localStorage</p>`;
+            }
+        };
+    </script>
+</body>
+</html>
