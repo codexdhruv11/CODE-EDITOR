@@ -1,5 +1,5 @@
 import rateLimit from 'express-rate-limit';
-import { Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { RATE_LIMITS, HTTP_STATUS, ERROR_CODES } from '../utils/constants';
 import { logger } from '../utils/logger';
 
@@ -48,22 +48,44 @@ const rateLimitHandler = (req: Request, res: Response) => {
   });
 };
 
-// Code execution rate limiter (strictest)
-export const codeExecutionLimiter = rateLimit({
-  windowMs: RATE_LIMITS.CODE_EXECUTION.windowMs,
-  max: RATE_LIMITS.CODE_EXECUTION.max,
-  keyGenerator: authKeyGenerator,
-  handler: rateLimitHandler,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: {
-    error: {
-      message: 'Too many code execution requests, please try again later',
-      code: ERROR_CODES.RATE_LIMIT_EXCEEDED,
-      retryAfter: Math.ceil(RATE_LIMITS.CODE_EXECUTION.windowMs / 1000),
+// Guest key generator - uses IP for guest users, user ID for authenticated
+const guestAwareKeyGenerator = (req: Request): string => {
+  if (req.user?.id) {
+    return `user-${req.user.id}`;
+  }
+  return `guest-${req.ip || 'unknown'}`;
+};
+
+// Code execution rate limiter (strictest, different limits for guests)
+export const codeExecutionLimiter = (req: Request, res: Response, next: NextFunction) => {
+  const isGuest = !req.user;
+  
+  const limiter = rateLimit({
+    windowMs: RATE_LIMITS.CODE_EXECUTION.windowMs,
+    max: isGuest ? Math.floor(RATE_LIMITS.CODE_EXECUTION.max / 2) : RATE_LIMITS.CODE_EXECUTION.max, // Guests get half the limit
+    keyGenerator: guestAwareKeyGenerator,
+    handler: (req: Request, res: Response) => {
+      logger.warn(`Rate limit exceeded for ${guestAwareKeyGenerator(req)} on ${req.path}`);
+      
+      const message = isGuest 
+        ? 'Guest users have limited executions. Please sign in for more.'
+        : 'Too many code execution requests, please try again later';
+      
+      return res.status(HTTP_STATUS.TOO_MANY_REQUESTS).json({
+        error: {
+          message,
+          code: ERROR_CODES.RATE_LIMIT_EXCEEDED,
+          retryAfter: Math.ceil(RATE_LIMITS.CODE_EXECUTION.windowMs / 1000),
+          isGuest,
+        },
+      });
     },
-  },
-});
+    standardHeaders: true,
+    legacyHeaders: false,
+  });
+  
+  limiter(req, res, next);
+};
 
 // Snippet creation rate limiter
 export const snippetCreationLimiter = rateLimit({
