@@ -26,7 +26,7 @@ export const executeCode = catchAsync(async (req: Request, res: Response, next: 
     userId: userIdentifier,
   });
 
-  const { language, code } = req.body;
+  const { language, code, input } = req.body;
 
   // Validate language is supported
   if (!codeExecutionService.validateLanguage(language)) {
@@ -50,7 +50,7 @@ export const executeCode = catchAsync(async (req: Request, res: Response, next: 
     });
 
     // Execute code using Piston API
-    const executionResult = await codeExecutionService.executeCode(language, code);
+    const executionResult = await codeExecutionService.executeCode(language, code, input);
 
     // Only save execution result to database for authenticated users
     let executionId = null;
