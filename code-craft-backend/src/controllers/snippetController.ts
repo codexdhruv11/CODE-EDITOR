@@ -6,6 +6,7 @@ import { HTTP_STATUS, ERROR_CODES } from '../utils/constants';
 import { parsePaginationParams, buildPaginationResponse } from '../utils/pagination';
 import { logger } from '../utils/logger';
 import { ISnippet } from '../models/Snippet';
+import { sanitizeSearchInput, validateObjectId, sanitizePagination } from '../utils/sanitization';
 
 /**
  * Snippet controller handling all snippet-related operations
@@ -16,11 +17,6 @@ import { ISnippet } from '../models/Snippet';
  * Create new code snippet
  */
 export const createSnippet = catchAsync(async (req: Request, res: Response): Promise<void> => {
-  console.log('=== CREATE SNIPPET REQUEST ===');
-  console.log('Headers:', req.headers);
-  console.log('User:', req.user);
-  console.log('Body:', req.body);
-  
   if (!req.user) {
     res.status(HTTP_STATUS.UNAUTHORIZED).json({
       error: {
@@ -33,7 +29,11 @@ export const createSnippet = catchAsync(async (req: Request, res: Response): Pro
 
   const { title, description, language, code } = req.body;
 
-  console.log('Parsed data:', { title, description, language, code: code?.substring(0, 100) + '...' });
+  logger.info('Creating snippet', { 
+    userId: req.user.id, 
+    title: title?.substring(0, 50), 
+    language 
+  });
 
   try {
     const snippet = new Snippet({
@@ -45,8 +45,6 @@ export const createSnippet = catchAsync(async (req: Request, res: Response): Pro
       userName: req.user.name,
     });
     
-    console.log('Created snippet instance:', snippet);
-
     await snippet.save();
 
     logger.info(`Snippet created`, {
@@ -88,21 +86,27 @@ export const getSnippets = catchAsync(async (req: Request, res: Response) => {
   }
 
   if (search && typeof search === 'string') {
-    // Use regex for partial matching instead of text search
-    query.title = { $regex: search, $options: 'i' };
+    const sanitizedSearch = sanitizeSearchInput(search);
+    if (sanitizedSearch) {
+      query.title = { $regex: sanitizedSearch, $options: 'i' };
+    }
   }
 
   if (userId && typeof userId === 'string') {
-    query.userId = userId;
+    const validUserId = validateObjectId(userId);
+    if (validUserId) {
+      query.userId = validUserId;
+    }
   }
 
   try {
-    // Get snippets with pagination
+    // Get snippets with pagination using lean() for better performance
     const [snippets, total] = await Promise.all([
       Snippet.find(query)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit)
+        .lean()
         .populate('starCount')
         .populate('commentCount'),
       Snippet.countDocuments(query),
