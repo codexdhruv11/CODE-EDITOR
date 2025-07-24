@@ -87,7 +87,7 @@ export function Header() {
           variant="ghost" 
           size="icon" 
           aria-label="Search (Ctrl+K)" 
-          className="hidden tablet:flex"
+          className="flex"
           onClick={() => setIsSearchOpen(true)}
           title="Search snippets (Ctrl+K)"
         >
