@@ -24,7 +24,6 @@ const codeExecutionSchema = new Schema<ICodeExecution, CodeExecutionModel>(
       type: Schema.Types.ObjectId,
       required: true,
       ref: 'User',
-      index: true,
     },
     language: {
       type: String,
