@@ -24,7 +24,6 @@ export const connectDatabase = async (): Promise<void> => {
       readPreference: 'primaryPreferred' as const,
       // Buffer settings
       bufferCommands: false,
-      bufferMaxEntries: 0,
     };
 
     await mongoose.connect(mongoUri, options);
