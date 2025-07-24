@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { Play, Save, CheckCircle2, AlertCircle, Clock, Info, Trash2 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { ExecutionPanelProps } from "@/types/ui";
 import { executionApi } from "@/lib/api";
@@ -24,13 +25,14 @@ export function ExecutionPanel({
   const { isAuthenticated } = useAuthStore();
   const { executionResults, setExecutionResults, clearExecutionResults } = useEditorStore();
   const [isSaving, setIsSaving] = useState(false);
+  const [input, setInput] = useState('');
   
   // Use store values
   const { output, status: executionStatus, executionTime } = executionResults;
 
   const { mutate: executeCode, isPending } = useMutation({
     mutationFn: async () => {
-      const response = await executionApi.executeCode(language, code);
+      const response = await executionApi.executeCode(language, code, input);
       return response.execution;
     },
     onSuccess: (data) => {
@@ -82,6 +84,10 @@ export function ExecutionPanel({
       executionTime: null
     });
     executeCode();
+  };
+
+  const handleClearInput = () => {
+    setInput('');
   };
   
   // Handle clear output
@@ -154,6 +160,38 @@ export function ExecutionPanel({
             </div>
           </div>
         </CardHeader>
+        
+        {/* Input Section */}
+        <div className="px-4 py-3 border-b bg-muted/20">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label htmlFor="stdin-input" className="text-sm font-medium">
+                Input (stdin)
+              </label>
+              {input && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearInput}
+                  className="h-6 px-2 text-xs"
+                >
+                  Clear
+                </Button>
+              )}
+            </div>
+            <Textarea
+              id="stdin-input"
+              placeholder="Enter input for your program (e.g., numbers, text)..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              className="min-h-[60px] max-h-[120px] text-sm font-mono resize-none"
+              rows={2}
+            />
+            <p className="text-xs text-muted-foreground">
+              Provide input that your program will read from stdin (e.g., for cin, scanf, input(), etc.)
+            </p>
+          </div>
+        </div>
         
         <CardContent className="flex-1 overflow-auto p-0">
           {isPending ? (
