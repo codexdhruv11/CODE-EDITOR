@@ -5,6 +5,7 @@ import { User } from '../models/User';
 import { config } from '../config/env';
 import { logger } from '../utils/logger';
 import { HTTP_STATUS, ERROR_CODES } from '../utils/constants';
+import { setAuthCookie, clearAuthCookie } from '../utils/cookies';
 
 // Get current user (for /auth/me endpoint)
 export const getMe = async (req: Request, res: Response): Promise<Response | void> => {
@@ -76,16 +77,24 @@ export const register = async (req: Request, res: Response): Promise<Response | 
     const payload = { userId: user._id.toString() };
     const token = jwt.sign(payload, config.jwtSecret, { expiresIn: config.jwtExpiresIn as StringValue });
 
+    // Set httpOnly cookie with token
+    setAuthCookie(res, token);
+
     // Remove password from response
     const userResponse = user.toJSON();
     const { password: _, ...userWithoutPassword } = userResponse;
 
     logger.info(`New user registered: ${email}`);
 
+    // For non-browser clients (mobile/API), include token in response
+    const clientType = req.headers['x-client-type'] || req.headers['user-agent'];
+    const isMobileOrAPI = clientType && (clientType === 'mobile' || clientType === 'api' || !clientType.includes('Mozilla'));
+
     res.status(HTTP_STATUS.CREATED).json({
       message: 'User registered successfully',
       user: userWithoutPassword,
-      token,
+      // Include token for non-browser clients
+      ...(isMobileOrAPI && { token }),
     });
   } catch (error) {
     logger.error('Registration error:', error);
@@ -129,22 +138,52 @@ export const login = async (req: Request, res: Response): Promise<Response | voi
     const payload = { userId: user._id.toString() };
     const token = jwt.sign(payload, config.jwtSecret, { expiresIn: config.jwtExpiresIn as StringValue });
 
+    // Set httpOnly cookie with token
+    setAuthCookie(res, token);
+
     // Remove password from response
     const userResponse = user.toJSON();
     const { password: _, ...userWithoutPassword } = userResponse;
 
     logger.info(`User logged in: ${email}`);
 
+    // For non-browser clients (mobile/API), include token in response
+    const clientType = req.headers['x-client-type'] || req.headers['user-agent'];
+    const isMobileOrAPI = clientType && (clientType === 'mobile' || clientType === 'api' || !clientType.includes('Mozilla'));
+
     res.status(HTTP_STATUS.OK).json({
       message: 'Login successful',
       user: userWithoutPassword,
-      token,
+      // Include token for non-browser clients
+      ...(isMobileOrAPI && { token }),
     });
   } catch (error) {
     logger.error('Login error:', error);
     res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
       error: {
         message: 'Login failed',
+        code: ERROR_CODES.INTERNAL_ERROR,
+      },
+    });
+  }
+};
+
+// Logout user
+export const logout = async (req: Request, res: Response): Promise<Response | void> => {
+  try {
+    // Clear the auth cookie
+    clearAuthCookie(res);
+    
+    logger.info(`User logged out: ${req.user?.email || 'unknown'}`);
+    
+    res.status(HTTP_STATUS.OK).json({
+      message: 'Logout successful',
+    });
+  } catch (error) {
+    logger.error('Logout error:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+      error: {
+        message: 'Logout failed',
         code: ERROR_CODES.INTERNAL_ERROR,
       },
     });
