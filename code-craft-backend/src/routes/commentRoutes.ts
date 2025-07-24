@@ -15,6 +15,7 @@ import {
   validatePagination,
 } from '../middleware/validation';
 import { commentLimiter, generalLimiter } from '../middleware/rateLimiting';
+import { verifyCsrfToken } from '../middleware/csrf';
 
 const router = Router();
 
@@ -25,6 +26,7 @@ router.use(generalLimiter);
 router.post(
   '/snippets/:id/comments',
   requireAuth,
+  verifyCsrfToken,
   commentLimiter,
   validateObjectId('id'),
   validateCommentCreation,
@@ -60,6 +62,7 @@ router.get(
 router.put(
   '/:id',
   requireAuth,
+  verifyCsrfToken,
   validateObjectId('id'),
   validateCommentUpdate,
   updateComment
@@ -69,6 +72,7 @@ router.put(
 router.delete(
   '/:id',
   requireAuth,
+  verifyCsrfToken,
   validateObjectId('id'),
   deleteComment
 );
