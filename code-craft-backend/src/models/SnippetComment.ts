@@ -31,7 +31,6 @@ const snippetCommentSchema = new Schema<ISnippetComment, SnippetCommentModel, IS
       type: Schema.Types.ObjectId,
       required: true,
       ref: 'Snippet',
-      index: true,
     },
     userId: {
       type: Schema.Types.ObjectId,
