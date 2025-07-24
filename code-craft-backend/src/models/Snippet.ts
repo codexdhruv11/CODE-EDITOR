@@ -27,7 +27,6 @@ const snippetSchema = new Schema<ISnippet, SnippetModel, ISnippetMethods>(
       type: Schema.Types.ObjectId,
       required: true,
       ref: 'User',
-      index: true,
     },
     title: {
       type: String,
