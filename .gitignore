@@ -1,29 +1,131 @@
-# Exclude text and markdown files
-*.txt
-*.md
-
-# Node modules
+# Dependencies
 node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Package manager locks (optional - remove if you want to commit them)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
 
 # Environment variables
 .env
 .env.*
+.env.local
+.env.development
+.env.test
+.env.production
 
-# Build files
+# Build output
 dist/
 build/
+out/
+.next/
+
+# Testing
+coverage/
+test-results/
+.nyc_output
+*.lcov
+junit.xml
+report.*.json
 
 # Logs
-logs
+logs/
 *.log
-npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# TypeScript
+*.tsbuildinfo
+
+# Cache directories
+.npm
+.eslintcache
+.rpt2_cache/
+.rts2_cache_cjs/
+.rts2_cache_es/
+.rts2_cache_umd/
 
 # IDE files
 .idea/
 .vscode/
 *.swp
 *.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
 
-# OS files
+# OS generated files
 .DS_Store
-Thumbs.db 
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+*.temp
+.temp
+
+# MongoDB binaries (for testing)
+.mongo-binaries/
+
+# Debug files
+debug-*.js
+quick-debug.js
+test-*.js
+test-*.html
+
+# Development utilities
+*.bat
+*.ps1
+
+# Serverless
+.serverless/
+.dynamodb/
+
+# Local development
+.local
+.history
+
+# Vercel
+.vercel
+
+# PWA
+**/public/sw.js
+**/public/workbox-*.js
+**/public/worker-*.js
+**/public/sw.js.map
+**/public/workbox-*.js.map
+**/public/worker-*.js.map
+
+# Generated files
+public/sitemap*.xml
+public/robots.txt
+public/feed.xml
+
+# TestSprite
+testsprite_tests/
+
+# Temporary development files
+tmp_rovodev_*
+changes.txt 
