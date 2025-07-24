@@ -13,7 +13,6 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@radix-ui/react-label";
-import { LoginDebug } from "@/components/debug/LoginDebug";
 
 // Form validation schema
 const loginSchema = z.object({
@@ -57,7 +56,6 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center px-4 py-12">
-      {process.env.NODE_ENV === 'development' && <LoginDebug />}
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-heading-2-mobile tablet:text-heading-2-desktop">Welcome back</CardTitle>
