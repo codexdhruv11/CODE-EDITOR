@@ -1,11 +1,13 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { connectDatabase, disconnectDatabase } from './config/database';
 import { config } from './config/env';
 import { logger, requestLogger } from './utils/logger';
 import { globalErrorHandler, notFoundHandler } from './middleware/errorHandler';
 import { generalLimiter } from './middleware/rateLimiting';
+import { csrfProtection, verifyCsrfToken } from './middleware/csrf';
 import apiRoutes from './routes';
 
 // Create Express app
@@ -32,8 +34,12 @@ app.use(cors({
   origin: config.corsOrigin.split(',').map((origin: string) => origin.trim()),
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'X-CSRF-Token'],
+  exposedHeaders: ['X-CSRF-Token'],
 }));
+
+// Cookie parser middleware (must be before routes)
+app.use(cookieParser());
 
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
@@ -44,6 +50,9 @@ app.use(requestLogger);
 
 // Apply general rate limiting to all routes
 app.use(generalLimiter);
+
+// CSRF protection middleware
+app.use(csrfProtection);
 
 // Root endpoint
 app.get('/', (req, res) => {
