@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Star, MessageSquare, Calendar } from "lucide-react";
-import { formatDistanceToNow } from 'date-fns';
+import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
 
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -15,18 +15,21 @@ import { SUPPORTED_LANGUAGES } from "@/lib/constants";
 import { StarButton } from './StarButton';
 
 export function SnippetCard({ snippet, onClick, className }: SnippetCardProps) {
-  // Find language info
-  const languageInfo = SUPPORTED_LANGUAGES.find(lang => lang.id === snippet.programmingLanguage) || 
+  // Find language info - handle both programmingLanguage and language properties
+  const language = snippet.programmingLanguage || snippet.language;
+  const languageInfo = SUPPORTED_LANGUAGES.find(lang => lang.id === language) || 
     SUPPORTED_LANGUAGES[0];
   
   // Format code preview (truncate if needed)
   const codePreview = truncateText(snippet.code, 200);
   
+  // Handle both property naming conventions
   const commentCount = snippet.commentCount || snippet.comments || 0;
   const starCount = snippet.starCount || snippet.stars || 0;
+  const userName = snippet.userName || (snippet.author ? snippet.author.name : "Unknown");
   
   return (
-    <motion.div variants={staggeredItem}>
+    <motion.div variants={staggeredItem as any}>
       <Link href={`/snippets/${snippet._id}`} onClick={onClick}>
         <Card 
           hover 
@@ -66,7 +69,7 @@ export function SnippetCard({ snippet, onClick, className }: SnippetCardProps) {
           
           <CardFooter className="flex items-center justify-between pt-0 text-xs text-muted-foreground">
             <div className="flex items-center">
-              <span>By {snippet.userName}</span>
+              <span>By {userName}</span>
             </div>
             <div className="flex items-center">
               <Calendar className="mr-1 h-3 w-3" />

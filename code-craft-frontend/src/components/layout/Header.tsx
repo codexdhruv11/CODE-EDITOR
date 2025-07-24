@@ -23,7 +23,9 @@ import {
 export function Header() {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
-  const { isAuthenticated, user, logout } = useAuthStore();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
   const { isSidebarOpen, setSidebarOpen } = useUIStore();
   const { isMobile, isTablet } = useResponsive();
   const [mounted, setMounted] = useState(false);
@@ -43,6 +45,8 @@ export function Header() {
 
   // Keyboard shortcut for search (Ctrl/Cmd + K)
   useEffect(() => {
+    if (!mounted) return;
+    
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
         e.preventDefault();
@@ -52,13 +56,13 @@ export function Header() {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, []);
+  }, [mounted]);
 
   return (
     <div className="flex h-16 items-center justify-between px-4 tablet:px-6">
       <div className="flex items-center">
         {/* Mobile/Tablet Menu Toggle */}
-        {(isMobile || isTablet) && (
+        {mounted && (isMobile || isTablet) && (
           <Button
             variant="ghost"
             size="icon"

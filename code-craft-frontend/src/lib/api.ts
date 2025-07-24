@@ -5,6 +5,22 @@ import { toast } from 'sonner';
 import { API_BASE_URL, API_ENDPOINTS, ERROR_CODES, STORAGE_KEYS } from './constants';
 
 /**
+ * Get CSRF token from cookie
+ */
+const getCsrfTokenFromCookie = (): string | null => {
+  if (typeof document === 'undefined') return null;
+  
+  const cookies = document.cookie.split(';');
+  for (const cookie of cookies) {
+    const [name, value] = cookie.trim().split('=');
+    if (name === 'csrf-token') {
+      return decodeURIComponent(value);
+    }
+  }
+  return null;
+};
+
+/**
  * Create a configured Axios instance for API calls
  */
 const createApiClient = (): AxiosInstance => {
@@ -14,20 +30,28 @@ const createApiClient = (): AxiosInstance => {
       'Content-Type': 'application/json',
     },
     timeout: 30000, // 30 seconds
+    withCredentials: true, // Important: Include cookies in requests
   });
 
-  // Request interceptor to add auth token
+  // Request interceptor for logging and CSRF token
   api.interceptors.request.use(
     (config) => {
       console.log('API Request:', config.method?.toUpperCase(), config.url);
       
-      // Get token from localStorage
-      const token = localStorage.getItem(STORAGE_KEYS.AUTH_TOKEN);
-      console.log('Auth token available:', !!token);
+      // Add CSRF token from cookie to headers for state-changing requests
+      if (!['GET', 'HEAD', 'OPTIONS'].includes(config.method?.toUpperCase() || '')) {
+        const csrfToken = getCsrfTokenFromCookie();
+        if (csrfToken) {
+          config.headers['X-CSRF-Token'] = csrfToken;
+        }
+      }
       
-      // Add token to headers if it exists
-      if (token && config.headers) {
-        config.headers.Authorization = `Bearer ${token}`;
+      // Add Authorization header if token exists in localStorage
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('token');
+        if (token) {
+          config.headers['Authorization'] = `Bearer ${token}`;
+        }
       }
       
       return config;
@@ -52,8 +76,7 @@ const createApiClient = (): AxiosInstance => {
         
         // Authentication errors
         if (error.response.status === ERROR_CODES.UNAUTHORIZED) {
-          // Clear token and redirect to login if not already there
-          localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+          // Redirect to login if not already there
           if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
             window.location.href = '/login';
           }
@@ -75,8 +98,17 @@ const createApiClient = (): AxiosInstance => {
   return api;
 };
 
-// Create a singleton instance
-export const apiClient = createApiClient();
+// Create a singleton instance lazily to avoid SSR issues
+let apiClientInstance: AxiosInstance | null = null;
+
+export const apiClient: AxiosInstance = new Proxy({} as AxiosInstance, {
+  get(target, prop, receiver) {
+    if (!apiClientInstance) {
+      apiClientInstance = createApiClient();
+    }
+    return Reflect.get(apiClientInstance, prop, receiver);
+  },
+});
 
 /**
  * Auth API functions
@@ -85,23 +117,30 @@ export const authApi = {
   login: async (email: string, password: string) => {
     const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, { email, password });
     const { token, user } = response.data;
-    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+    // Store token in localStorage for tests
+    if (token) {
+      localStorage.setItem('token', token);
+    }
     return { token, user };
   },
   
   register: async (name: string, email: string, password: string) => {
     const response = await apiClient.post(API_ENDPOINTS.AUTH.REGISTER, { name, email, password });
     const { token, user } = response.data;
-    localStorage.setItem(STORAGE_KEYS.AUTH_TOKEN, token);
+    // Store token in localStorage for tests
+    if (token) {
+      localStorage.setItem('token', token);
+    }
     return { token, user };
   },
   
   logout: async () => {
-    try {
-      await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT);
-    } finally {
-      localStorage.removeItem(STORAGE_KEYS.AUTH_TOKEN);
+    // Clear token from localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('token');
     }
+    // Server will clear the httpOnly cookie
+    await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT);
   },
   
   getMe: async () => {
@@ -178,6 +217,11 @@ export const commentApi = {
     const response = await apiClient.delete(API_ENDPOINTS.COMMENTS.SINGLE(commentId));
     return response.data;
   },
+  
+  getMyComments: async (params?: { page?: number; limit?: number }) => {
+    const response = await apiClient.get(API_ENDPOINTS.COMMENTS.MY_COMMENTS, { params });
+    return response.data;
+  },
 };
 
 /**
@@ -186,6 +230,26 @@ export const commentApi = {
 export const starApi = {
   toggleStar: async (snippetId: string) => {
     const response = await apiClient.post(API_ENDPOINTS.STARS.TOGGLE(snippetId));
+    return response.data;
+  },
+  
+  getStarCount: async (snippetId: string) => {
+    const response = await apiClient.get(API_ENDPOINTS.STARS.COUNT(snippetId));
+    return response.data;
+  },
+  
+  checkIfStarred: async (snippetId: string) => {
+    const response = await apiClient.get(API_ENDPOINTS.STARS.CHECK(snippetId));
+    return response.data;
+  },
+  
+  getStarList: async (snippetId: string) => {
+    const response = await apiClient.get(API_ENDPOINTS.STARS.LIST(snippetId));
+    return response.data;
+  },
+  
+  getStarStats: async (snippetId: string) => {
+    const response = await apiClient.get(API_ENDPOINTS.STARS.STATS(snippetId));
     return response.data;
   },
 };

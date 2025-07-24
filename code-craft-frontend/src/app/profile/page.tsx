@@ -58,15 +58,19 @@ export default function ProfilePage() {
     staleTime: 2 * 60 * 1000, // 2 minutes
   });
   
-  const userSnippetsQuery = useQuery({
-    queryKey: ["userSnippets", user?._id],
-    queryFn: async () => {
-      const response = await apiClient.get(`${API_ENDPOINTS.SNIPPETS.BASE}?limit=3&author=${user?._id}`);
-      return response.data;
-    },
-    enabled: isAuthenticated && !!user?._id,
-    staleTime: 1 * 60 * 1000, // 1 minute
-  });
+const userSnippetsQuery = useQuery({
+  queryKey: ["userSnippets", user?.id || user?._id],
+  queryFn: async () => {
+    const userId = user?.id || user?._id;
+    console.log('Fetching user snippets for userId:', userId);
+    console.log('Current user object:', user);
+    const response = await apiClient.get(`${API_ENDPOINTS.SNIPPETS.BASE}?limit=3&userId=${userId}`);
+    console.log('User snippets response:', response.data);
+    return response.data;
+  },
+  enabled: isAuthenticated && !!(user?.id || user?._id),
+  staleTime: 1 * 60 * 1000, // 1 minute
+});
   
   const starredSnippetsQuery = useQuery({
     queryKey: ["starredSnippetsPreview"],

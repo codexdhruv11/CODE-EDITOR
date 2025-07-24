@@ -14,6 +14,9 @@ export const API_ENDPOINTS = {
     REGISTER: '/auth/register',
     LOGOUT: '/auth/logout',
     ME: '/auth/me',
+    PROFILE: '/auth/profile',
+    REFRESH: '/auth/refresh',
+    CSRF_TOKEN: '/auth/csrf-token',
   },
   USERS: {
     ME: '/users/me',
@@ -27,18 +30,24 @@ export const API_ENDPOINTS = {
     DETAIL: (id: string) => `/snippets/${id}`,
   },
   COMMENTS: {
-    LIST: (snippetId: string) => `/comments/snippets/${snippetId}/comments`,
-    SINGLE: (commentId: string) => `/comments/${commentId}`,
-    DETAIL: (id: string) => `/comments/${id}`,
     FOR_SNIPPET: (snippetId: string) => `/snippets/${snippetId}/comments`,
+    SINGLE: (commentId: string) => `/comments/${commentId}`,
+    MY_COMMENTS: '/comments/my-comments',
   },
   STARS: {
-    TOGGLE: (snippetId: string) => `/stars/snippets/${snippetId}/stars`,
+    TOGGLE: (snippetId: string) => `/snippets/${snippetId}/stars`,
+    COUNT: (snippetId: string) => `/snippets/${snippetId}/stars/count`,
+    CHECK: (snippetId: string) => `/snippets/${snippetId}/stars/me`,
+    LIST: (snippetId: string) => `/snippets/${snippetId}/stars`,
+    STATS: (snippetId: string) => `/snippets/${snippetId}/stars/stats`,
   },
   EXECUTIONS: {
     BASE: '/executions',
     LANGUAGES: '/executions/languages',
     STATS: '/executions/stats',
+  },
+  WEBHOOKS: {
+    HEALTH: '/webhooks/health',
   },
 };
 
@@ -120,6 +129,10 @@ export const API_LIMITS = {
   EXECUTION_TIMEOUT: 30000, // 30 seconds
   RATE_LIMIT: {
     EXECUTIONS: 10, // 10 per minute
+    SNIPPET_CREATION: 5, // 5 per minute
+    COMMENTS: 20, // 20 per minute
+    GENERAL: 100, // 100 per minute
+    STARS: 30, // 30 per minute
   },
 };
 

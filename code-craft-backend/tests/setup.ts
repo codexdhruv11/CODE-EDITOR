@@ -13,6 +13,30 @@ jest.mock('../src/services/codeExecution', () => ({
   },
 }));
 
+// Mock environment validation
+jest.mock('../src/config/env', () => {
+  const originalModule = jest.requireActual('../src/config/env');
+  
+  // Override the config with test values
+  const testConfig = {
+    port: 3001,
+    nodeEnv: 'test',
+    mongodbUri: 'mongodb://localhost:27017/test',
+    jwtSecret: 'this_is_a_test_secret_key_that_is_at_least_32_characters_long',
+    jwtExpiresIn: '1h',
+    corsOrigin: 'http://localhost:3000',
+    logLevel: 'error',
+    logFile: 'logs/test.log',
+    cookieDomain: undefined,
+    secureCookies: false
+  };
+  
+  return {
+    ...originalModule,
+    config: testConfig,
+  };
+});
+
 // Mock logger to reduce noise in tests
 jest.mock('../src/utils/logger', () => ({
   logger: {
@@ -32,128 +56,184 @@ jest.mock('axios', () => ({
 
 let mongoServer: MongoMemoryServer;
 
-// Global test setup
-beforeAll(async () => {
-  // Start in-memory MongoDB instance
-  mongoServer = await MongoMemoryServer.create();
-  const mongoUri = mongoServer.getUri();
-  
-  // Connect to the in-memory database
-  await mongoose.connect(mongoUri);
-});
+// Increase Jest timeout for all tests
+jest.setTimeout(60000); // 60 seconds
 
-// Clean up after each test
-afterEach(async () => {
-  // Clear all collections
+// Database connection functions for tests
+export const connectTestDatabase = async () => {
+  try {
+    mongoServer = await MongoMemoryServer.create({
+      instance: {
+        dbName: 'test',
+        port: 27018, // Use a different port to avoid conflicts
+        storageEngine: 'wiredTiger',
+      },
+      binary: {
+        version: '5.0.5', // Specify a stable version
+        downloadDir: './.mongo-binaries', // Cache binaries for faster startup
+      },
+    });
+    
+    const mongoUri = mongoServer.getUri();
+    await mongoose.connect(mongoUri, {
+      serverSelectionTimeoutMS: 30000, // Increase timeout for server selection
+      socketTimeoutMS: 30000, // Increase socket timeout
+      connectTimeoutMS: 30000, // Increase connection timeout
+    });
+    
+    console.log('Connected to in-memory MongoDB instance');
+  } catch (error) {
+    console.error('Failed to start MongoDB memory server:', error);
+    throw error;
+  }
+};
+
+export const clearTestDatabase = async () => {
+  if (!mongoose.connection || !mongoose.connection.db) {
+    console.warn('No database connection to clear');
+    return;
+  }
+  
   const collections = mongoose.connection.collections;
   for (const key in collections) {
     const collection = collections[key];
     await collection.deleteMany({});
   }
-  
-  // Clear all mocks
-  jest.clearAllMocks();
+};
+
+export const closeTestDatabase = async () => {
+  try {
+    if (mongoose.connection.readyState !== 0) {
+      await mongoose.connection.dropDatabase();
+      await mongoose.connection.close();
+    }
+    
+    if (mongoServer) {
+      await mongoServer.stop();
+    }
+  } catch (error) {
+    console.error('Error closing test database:', error);
+  }
+};
+
+// Global test setup
+beforeAll(async () => {
+  try {
+    // Start in-memory MongoDB instance
+    await connectTestDatabase();
+  } catch (error) {
+    console.error('Error in global test setup:', error);
+    throw error;
+  }
+});
+
+// Clean up after each test
+afterEach(async () => {
+  try {
+    // Clear all collections
+    await clearTestDatabase();
+    
+    // Clear all mocks
+    jest.clearAllMocks();
+  } catch (error) {
+    console.error('Error in afterEach cleanup:', error);
+  }
 });
 
 // Global test teardown
 afterAll(async () => {
-  // Close database connection
-  await mongoose.connection.dropDatabase();
-  await mongoose.connection.close();
-  
-  // Stop the in-memory MongoDB instance
-  await mongoServer.stop();
+  try {
+    // Close database connection
+    await closeTestDatabase();
+  } catch (error) {
+    console.error('Error in global test teardown:', error);
+  }
 });
 
-// Test utilities
-export const createTestUser = async () => {
-  const { User } = await import('../src/models/User');
-  return User.create({
+// Helper functions for tests
+
+// Create a test user
+export const createTestUser = async (userData = {}) => {
+  const { User } = require('../src/models');
+  const defaultData = {
+    name: 'Test User',
     email: 'test@example.com',
     password: 'TestPassword123',
-    name: 'Test User',
-  });
+  };
+  
+  const user = new User({ ...defaultData, ...userData });
+  await user.save();
+  return user;
 };
 
-export const createTestSnippet = async (userId: string) => {
-  const { Snippet } = await import('../src/models/Snippet');
-  return Snippet.create({
+// Create a test snippet
+export const createTestSnippet = async (userId: any, snippetData = {}) => {
+  const { Snippet } = require('../src/models');
+  const defaultData = {
     userId,
     title: 'Test Snippet',
     language: 'javascript',
     code: 'console.log("Hello, World!");',
+    description: 'Test description',
     userName: 'Test User',
-  });
+    isPublic: true,
+  };
+  
+  const snippet = new Snippet({ ...defaultData, ...snippetData });
+  await snippet.save();
+  return snippet;
 };
 
-export const createTestComment = async (snippetId: string, userId: string) => {
-  const { SnippetComment } = await import('../src/models/SnippetComment');
-  return SnippetComment.create({
+// Create a test comment
+export const createTestComment = async (userId: any, snippetId: any, commentData = {}) => {
+  const { SnippetComment } = require('../src/models');
+  const defaultData = {
+    userId,
     snippetId,
-    userId,
+    content: 'Test comment',
     userName: 'Test User',
-    content: 'This is a test comment',
-  });
+  };
+  
+  const comment = new SnippetComment({ ...defaultData, ...commentData });
+  await comment.save();
+  return comment;
 };
 
-export const createTestExecution = async (userId: string) => {
-  const { CodeExecution } = await import('../src/models/CodeExecution');
-  return CodeExecution.create({
-    userId,
-    language: 'javascript',
-    code: 'console.log("Hello");',
-    output: 'Hello',
-    executionTime: 100,
-  });
-};
-
-export const mockAuthUser = {
-  id: 'test-user-id',
-  email: 'test@example.com',
-  name: 'Test User',
-};
-
-// Generate test JWT token
+// Generate a test JWT token
 export const generateTestJWT = (userId: string) => {
-  return jwt.sign(
-    { userId },
-    process.env.JWT_SECRET || 'test-jwt-secret',
-    { expiresIn: '1h' }
-  );
+  return jwt.sign({ id: userId }, 'this_is_a_test_secret_key_that_is_at_least_32_characters_long', { expiresIn: '1h' });
 };
 
-// Mock authentication middleware
-export const mockAuth = (req: any, res: any, next: any) => {
-  req.user = mockAuthUser;
-  next();
+// Mock authenticated user for tests
+export const mockAuthUser = (req: any, userId: string) => {
+  req.user = { id: userId };
+  return req;
 };
 
 // Mock Piston API responses
 export const mockPistonSuccess = {
+  ran: true,
   language: 'javascript',
   version: '18.15.0',
-  run: {
-    stdout: 'Hello, World!\n',
-    stderr: '',
-    code: 0,
-    signal: null,
-    output: 'Hello, World!\n',
-  },
+  output: 'Hello, World!\n',
+  stdout: 'Hello, World!\n',
+  stderr: '',
+  code: 0,
+  signal: null,
 };
 
 export const mockPistonError = {
+  ran: true,
   language: 'javascript',
   version: '18.15.0',
-  run: {
-    stdout: '',
-    stderr: 'SyntaxError: Unexpected token',
-    code: 1,
-    signal: null,
-    output: 'SyntaxError: Unexpected token',
-  },
+  output: 'Error: Unexpected token\n',
+  stdout: '',
+  stderr: 'Error: Unexpected token\n',
+  code: 1,
+  signal: null,
 };
 
 // Set test environment variables
 process.env.NODE_ENV = 'test';
-process.env.JWT_SECRET = 'test-jwt-secret';
+process.env.JWT_SECRET = 'this_is_a_test_secret_key_that_is_at_least_32_characters_long';
 process.env.MONGODB_URI = 'mongodb://localhost:27017/test';

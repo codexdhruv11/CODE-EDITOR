@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuthStore } from '@/stores/authStore';
 
 interface AuthProviderProps {
@@ -8,9 +8,13 @@ interface AuthProviderProps {
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
-  const { initializeAuth } = useAuthStore();
+  const [isHydrated, setIsHydrated] = useState(false);
+  const initializeAuth = useAuthStore((state) => state.initializeAuth);
 
   useEffect(() => {
+    // Mark as hydrated first
+    setIsHydrated(true);
+    
     // Initialize auth on app start
     const init = async () => {
       // Rehydrate the store first
@@ -22,5 +26,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
     init();
   }, [initializeAuth]);
 
+  // During SSR or before hydration, just render children
   return <>{children}</>;
 }

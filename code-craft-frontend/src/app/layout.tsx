@@ -8,6 +8,7 @@ import { AuthProvider } from '@/components/providers/auth-provider';
 import { Header } from '@/components/layout/Header';
 import { ResponsiveLayout } from '@/components/layout/ResponsiveLayout';
 import { AuthGuard } from '@/components/auth/AuthGuard';
+import { SuppressHydrationWarning } from './providers';
 
 // Font configuration
 const fontSans = FontSans({
@@ -40,17 +41,19 @@ export default function RootLayout({
           Skip to main content
         </a>
         
-        <ThemeProvider>
-          <ReactQueryProvider>
-            <AuthProvider>
-              <AuthGuard>
-                <ResponsiveLayout header={<Header />}>
-                  {children}
-                </ResponsiveLayout>
-              </AuthGuard>
-            </AuthProvider>
-          </ReactQueryProvider>
-        </ThemeProvider>
+        <SuppressHydrationWarning>
+          <ThemeProvider>
+            <ReactQueryProvider>
+              <AuthProvider>
+                <AuthGuard>
+                  <ResponsiveLayout header={<Header />}>
+                    {children}
+                  </ResponsiveLayout>
+                </AuthGuard>
+              </AuthProvider>
+            </ReactQueryProvider>
+          </ThemeProvider>
+        </SuppressHydrationWarning>
       </body>
     </html>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useAuthStore } from '@/stores/authStore';
 
@@ -26,9 +26,18 @@ const authRoutes = [
 export function AuthGuard({ children }: AuthGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  useEffect(() => {
+    // Only run on client side
+    if (!isClient) return;
+    
     // Don't redirect while loading
     if (isLoading) return;
 
@@ -44,15 +53,21 @@ export function AuthGuard({ children }: AuthGuardProps) {
       router.push('/');
       return;
     }
-  }, [isAuthenticated, isLoading, pathname, router]);
+  }, [isAuthenticated, isLoading, pathname, router, isClient]);
 
-  // Show loading while checking authentication
+  // During SSR or before client hydration, always render children
+  // This prevents hydration mismatches
+  if (!isClient) {
+    return <>{children}</>;
+  }
+
+  // Show loading while checking authentication on client
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Loading...</p>
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4" data-testid="loading-spinner"></div>
+          <p data-testid="loading-text">Loading...</p>
         </div>
       </div>
     );

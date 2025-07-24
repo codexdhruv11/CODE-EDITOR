@@ -11,8 +11,8 @@ interface DecodedToken {
 }
 
 interface AuthState {
-  user: User | null;
   token: string | null;
+  user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
@@ -20,9 +20,8 @@ interface AuthState {
   // Actions
   login: (token: string, user: User) => void;
   logout: () => void;
-  checkAuth: () => boolean;
+  checkAuth: () => Promise<boolean>;
   setUser: (user: User | null) => void;
-  setToken: (token: string | null) => void;
   setError: (error: string | null) => void;
   setLoading: (isLoading: boolean) => void;
   updateUserData: (userData: Partial<User>) => void;
@@ -36,14 +35,13 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      user: null,
       token: null,
+      user: null,
       isAuthenticated: false,
       isLoading: false, // Start with false to prevent infinite loading
       error: null,
       
       setUser: (user) => set({ user, isAuthenticated: !!user }),
-      setToken: (token) => set({ token }),
       setError: (error) => set({ error }),
       setLoading: (isLoading) => set({ isLoading }),
       updateUserData: (userData) => set((state) => ({
@@ -51,49 +49,40 @@ export const useAuthStore = create<AuthState>()(
       })),
       
       login: (token, user) => {
+        // Store token in localStorage
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('token', token);
+        }
+        
         set({
           token,
           user,
           isAuthenticated: true,
           error: null,
         });
-        
-        // Store token in localStorage for API interceptors
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('token', token);
-        }
       },
       
       logout: () => {
-        set({
-          user: null,
-          token: null,
-          isAuthenticated: false,
-        });
-        
         // Remove token from localStorage
         if (typeof window !== 'undefined') {
           localStorage.removeItem('token');
         }
+        
+        set({
+          token: null,
+          user: null,
+          isAuthenticated: false,
+        });
       },
       
-      checkAuth: () => {
-        const { token } = get();
-        
-        if (!token) {
-          return false;
-        }
-        
+      checkAuth: async () => {
         try {
-          const decodedToken = jwtDecode<DecodedToken>(token);
-          const currentTime = Date.now() / 1000;
-          
-          // Check if token is expired
-          if (decodedToken.exp < currentTime) {
-            get().logout();
-            return false;
-          }
-          
+          // Check auth by calling the /me endpoint
+          const userData = await authApi.getMe();
+          set({ 
+            user: userData.user, 
+            isAuthenticated: true,
+          });
           return true;
         } catch (error) {
           get().logout();
@@ -132,6 +121,7 @@ export const useAuthStore = create<AuthState>()(
           const { token, user } = await authApi.register(name, email, password);
           
           get().login(token, user);
+          set({ isLoading: false });
           return { success: true };
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Registration failed';
@@ -144,50 +134,32 @@ export const useAuthStore = create<AuthState>()(
         set({ isLoading: true });
         
         try {
-          // Get token from localStorage if not in state
-          const currentState = get();
-          let token = currentState.token;
+          // Get token from localStorage
+          const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
           
-          if (!token && typeof window !== 'undefined') {
-            token = localStorage.getItem('token');
-            if (token) {
-              set({ token });
-            }
+          if (!token) {
+            throw new Error('No token found');
           }
           
-          if (token) {
-            // Check if token is valid
-            const isValid = get().checkAuth();
-            if (isValid) {
-              try {
-                // Fetch fresh user data
-                const userData = await authApi.getMe();
-                set({ 
-                  user: userData.user, 
-                  isAuthenticated: true,
-                  isLoading: false 
-                });
-                return;
-              } catch (error) {
-                // If API call fails, clear invalid token
-                get().logout();
-              }
-            }
-          }
-          
-          // No valid token found
+          // Check if user is authenticated by calling the /me endpoint
+          const userData = await authApi.getMe();
           set({ 
-            isLoading: false, 
-            isAuthenticated: false,
-            user: null,
-            token: null 
+            token,
+            user: userData.user, 
+            isAuthenticated: true,
+            isLoading: false 
           });
         } catch (error) {
+          // User is not authenticated
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('token');
+          }
+          
           set({ 
+            token: null,
             isLoading: false, 
             isAuthenticated: false,
-            user: null,
-            token: null 
+            user: null
           });
         }
       },
@@ -197,6 +169,7 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         token: state.token,
         user: state.user,
+        isAuthenticated: state.isAuthenticated,
       }),
       skipHydration: true,
     }

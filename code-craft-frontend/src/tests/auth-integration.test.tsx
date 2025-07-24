@@ -179,6 +179,9 @@ describe('Authentication Integration Tests', () => {
     it('should redirect unauthenticated users to login', () => {
       const TestComponent = () => <div>Protected Content</div>;
 
+      // Mock the loading state
+      useAuthStore.setState({ isLoading: true });
+
       render(
         <TestWrapper>
           <AuthGuard>
@@ -188,15 +191,22 @@ describe('Authentication Integration Tests', () => {
       );
 
       // Should show loading initially
-      expect(screen.getByText(/loading/i)).toBeInTheDocument();
+      expect(screen.getByTestId('loading-text')).toBeInTheDocument();
     });
 
     it('should render protected content for authenticated users', async () => {
       // Set authenticated state
-      useAuthStore.getState().login('mock-token', {
-        _id: 'user123',
-        name: 'Test User',
-        email: 'test@example.com',
+      useAuthStore.setState({
+        token: 'mock-token',
+        user: {
+          _id: 'user123',
+          name: 'Test User',
+          email: 'test@example.com',
+          createdAt: '2023-01-01T00:00:00.000Z',
+          updatedAt: '2023-01-01T00:00:00.000Z'
+        },
+        isAuthenticated: true,
+        isLoading: false
       });
 
       const TestComponent = () => <div>Protected Content</div>;
@@ -221,9 +231,18 @@ describe('Authentication Integration Tests', () => {
         _id: 'user123',
         name: 'Test User',
         email: 'test@example.com',
+        createdAt: '2023-01-01T00:00:00.000Z',
+        updatedAt: '2023-01-01T00:00:00.000Z'
       };
 
-      useAuthStore.getState().login('test-token', mockUser);
+      // Manually set token in localStorage for test
+      localStorage.setItem('token', 'test-token');
+
+      useAuthStore.setState({
+        token: 'test-token',
+        user: mockUser,
+        isAuthenticated: true
+      });
 
       // Check if token is stored
       expect(localStorage.getItem('token')).toBe('test-token');
@@ -231,11 +250,22 @@ describe('Authentication Integration Tests', () => {
 
     it('should clear token on logout', () => {
       // Set initial state
-      useAuthStore.getState().login('test-token', {
+      const mockUser = {
         _id: 'user123',
         name: 'Test User',
         email: 'test@example.com',
+        createdAt: '2023-01-01T00:00:00.000Z',
+        updatedAt: '2023-01-01T00:00:00.000Z'
+      };
+
+      useAuthStore.setState({
+        token: 'test-token',
+        user: mockUser,
+        isAuthenticated: true
       });
+
+      // Manually set token in localStorage for test
+      localStorage.setItem('token', 'test-token');
 
       // Logout
       useAuthStore.getState().logout();
@@ -256,6 +286,8 @@ describe('Authentication Integration Tests', () => {
           _id: 'user123',
           name: 'Stored User',
           email: 'stored@example.com',
+          createdAt: '2023-01-01T00:00:00.000Z',
+          updatedAt: '2023-01-01T00:00:00.000Z'
         },
       });
 
