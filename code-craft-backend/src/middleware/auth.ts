@@ -21,9 +21,18 @@ declare global {
 // Authentication middleware using JWT
 export const requireAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const authHeader = req.headers.authorization;
+    // Extract token from cookie (browser clients) or Authorization header (mobile/API clients)
+    let token = req.cookies['auth-token'];
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // If no cookie token, check Authorization header for mobile/API clients
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
+    
+    if (!token) {
       res.status(HTTP_STATUS.UNAUTHORIZED).json({
         error: {
           message: 'Authorization token required',
@@ -32,8 +41,6 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
       });
       return;
     }
-
-    const token = authHeader.substring(7); // Remove 'Bearer ' prefix
 
     try {
       const decoded = jwt.verify(token, config.jwtSecret) as { userId: string };
@@ -80,15 +87,22 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
 // Optional authentication middleware for public endpoints that can benefit from user context
 export const optionalAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
-    const authHeader = req.headers.authorization;
+    // Extract token from cookie (browser clients) or Authorization header (mobile/API clients)
+    let token = req.cookies['auth-token'];
     
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    // If no cookie token, check Authorization header for mobile/API clients
+    if (!token) {
+      const authHeader = req.headers.authorization;
+      if (authHeader && authHeader.startsWith('Bearer ')) {
+        token = authHeader.substring(7);
+      }
+    }
+    
+    if (!token) {
       // No token provided, continue without user context
       next();
       return;
     }
-
-    const token = authHeader.substring(7);
 
     // Try to authenticate but don't fail if it doesn't work
     try {
