@@ -17,6 +17,7 @@ import {
   validateSearch,
 } from '../middleware/validation';
 import { snippetCreationLimiter, generalLimiter } from '../middleware/rateLimiting';
+import { verifyCsrfToken } from '../middleware/csrf';
 
 const router = Router();
 
@@ -27,6 +28,7 @@ router.use(generalLimiter);
 router.post(
   '/',
   requireAuth,
+  verifyCsrfToken,
   snippetCreationLimiter,
   validateSnippetCreation,
   createSnippet
@@ -69,6 +71,7 @@ router.get(
 router.put(
   '/:id',
   requireAuth,
+  verifyCsrfToken,
   validateObjectId('id'),
   validateSnippetUpdate,
   updateSnippet
@@ -78,6 +81,7 @@ router.put(
 router.delete(
   '/:id',
   requireAuth,
+  verifyCsrfToken,
   validateObjectId('id'),
   deleteSnippet
 );
