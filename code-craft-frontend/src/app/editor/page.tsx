@@ -25,6 +25,8 @@ export default function EditorPage() {
   const [executionOutput, setExecutionOutput] = useState<string>('');
   const [executionStatus, setExecutionStatus] = useState<'idle' | 'success' | 'error'>('idle');
   const [executionTime, setExecutionTime] = useState<number | null>(null);
+  const [hasUserModifiedCode, setHasUserModifiedCode] = useState(false);
+  const [initialLoad, setInitialLoad] = useState(true);
   
   // Initialize from URL params on mount
   useEffect(() => {
@@ -33,15 +35,15 @@ export default function EditorPage() {
     
     if (languageParam && languageParam !== language) {
       setLanguage(languageParam);
-      // Only set template if no code is provided
-      if (!codeParam && !code) {
+      // Only set template if no code is provided and this is initial load
+      if (!codeParam && !code && initialLoad) {
         const template = LANGUAGE_TEMPLATES[languageParam];
         if (template) {
           setCode(template);
         }
       }
-    } else if (!code) {
-      // Set initial template if no code exists
+    } else if (!code && initialLoad) {
+      // Set initial template if no code exists and this is initial load
       const template = LANGUAGE_TEMPLATES[language] || LANGUAGE_TEMPLATES[SUPPORTED_LANGUAGES[0].id];
       if (template) {
         setCode(template);
@@ -50,8 +52,14 @@ export default function EditorPage() {
     
     if (codeParam) {
       setCode(codeParam);
+      setHasUserModifiedCode(true);
     }
-  }, [searchParams, code, language, setCode, setLanguage]);
+    
+    // Mark initial load as complete
+    if (initialLoad) {
+      setInitialLoad(false);
+    }
+  }, [searchParams, code, language, setCode, setLanguage, initialLoad]);
   
   // Update URL when language changes
   useEffect(() => {
@@ -66,6 +74,7 @@ export default function EditorPage() {
   const handleCodeChange = React.useCallback((value: string | undefined) => {
     if (value !== undefined && value !== code) {
       setCode(value);
+      setHasUserModifiedCode(true);
     }
   }, [code, setCode]);
   
@@ -79,16 +88,17 @@ export default function EditorPage() {
       setExecutionStatus('idle');
       setExecutionTime(null);
       
-      // If current code is empty or is the default template, update to new language template
+      // Only update to new language template if user hasn't modified code or current code is the default template
       const currentTemplate = LANGUAGE_TEMPLATES[language];
-      if (!code.trim() || code === currentTemplate) {
+      if (!hasUserModifiedCode || code === currentTemplate) {
         const newTemplate = LANGUAGE_TEMPLATES[newLanguage];
         if (newTemplate) {
           setCode(newTemplate);
+          setHasUserModifiedCode(false); // Reset since we're setting a new template
         }
       }
     }
-  }, [language, code, setLanguage, setCode]);
+  }, [language, code, hasUserModifiedCode, setLanguage, setCode]);
   
   // Toggle execution panel on mobile
   const toggleExecutionPanel = () => {
