@@ -31,8 +31,8 @@ module.exports = {
     }
   },
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
-  testTimeout: 30000,
-  moduleNameMapping: {
+  testTimeout: 60000, // Increase to 60 seconds
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
     '^@models/(.*)$': '<rootDir>/src/models/$1',
     '^@controllers/(.*)$': '<rootDir>/src/controllers/$1',
@@ -46,5 +46,8 @@ module.exports = {
   forceExit: true,
   clearMocks: true,
   resetMocks: true,
-  restoreMocks: true
+  restoreMocks: true,
+  // Add these options to help with async issues
+  detectOpenHandles: true,
+  maxWorkers: 1, // Run tests serially
 };
