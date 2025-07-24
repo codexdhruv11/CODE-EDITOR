@@ -10,11 +10,21 @@ export const connectDatabase = async (): Promise<void> => {
     }
 
     const options = {
-      maxPoolSize: 10,
+      // Optimized connection pooling
+      maxPoolSize: 20, // Increase pool size for better performance
+      minPoolSize: 5, // Maintain minimum connections
       serverSelectionTimeoutMS: 5000,
       socketTimeoutMS: 45000,
+      maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
       retryWrites: true,
       w: 'majority' as const,
+      // Connection monitoring
+      heartbeatFrequencyMS: 10000, // Check connection every 10 seconds
+      // Read preferences for better performance
+      readPreference: 'primaryPreferred' as const,
+      // Buffer settings
+      bufferCommands: false,
+      bufferMaxEntries: 0,
     };
 
     await mongoose.connect(mongoUri, options);
