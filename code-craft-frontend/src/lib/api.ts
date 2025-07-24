@@ -258,8 +258,8 @@ export const starApi = {
  * Execution API functions
  */
 export const executionApi = {
-  executeCode: async (language: string, code: string) => {
-    const response = await apiClient.post(API_ENDPOINTS.EXECUTIONS.BASE, { language, code });
+  executeCode: async (language: string, code: string, input?: string) => {
+    const response = await apiClient.post(API_ENDPOINTS.EXECUTIONS.BASE, { language, code, input });
     return response.data;
   },
   
