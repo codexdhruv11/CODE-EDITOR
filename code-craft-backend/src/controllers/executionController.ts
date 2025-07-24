@@ -5,6 +5,7 @@ import { catchAsync } from '../middleware/errorHandler';
 import { HTTP_STATUS, ERROR_CODES } from '../utils/constants';
 import { parsePaginationParams, buildPaginationResponse } from '../utils/pagination';
 import { logger } from '../utils/logger';
+import { validateObjectId, sanitizePagination } from '../utils/sanitization';
 
 /**
  * Code execution controller
@@ -199,25 +200,55 @@ export const getExecutionStats = catchAsync(async (req: Request, res: Response, 
   }
 
   try {
-    const stats = await CodeExecution.getUserStats(req.user.id);
-
-    // Get language breakdown
-    const languageBreakdown = await CodeExecution.aggregate([
-      { $match: { userId: req.user.id } },
-      {
-        $group: {
-          _id: '$language',
-          count: { $sum: 1 },
-          avgExecutionTime: { $avg: '$executionTime' },
-          lastUsed: { $max: '$createdAt' },
+    // Use aggregation pipeline for better performance
+    const [generalStats, languageBreakdown] = await Promise.all([
+      CodeExecution.aggregate([
+        { $match: { userId: req.user.id } },
+        {
+          $group: {
+            _id: null,
+            totalExecutions: { $sum: 1 },
+            avgExecutionTime: { $avg: '$executionTime' },
+            languagesUsed: { $addToSet: '$language' },
+            last24Hours: {
+              $sum: {
+                $cond: [
+                  { $gte: ['$createdAt', new Date(Date.now() - 24 * 60 * 60 * 1000)] },
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      ]),
+      CodeExecution.aggregate([
+        { $match: { userId: req.user.id } },
+        {
+          $group: {
+            _id: '$language',
+            count: { $sum: 1 },
+            avgExecutionTime: { $avg: '$executionTime' },
+            lastUsed: { $max: '$createdAt' },
+          },
         },
-      },
-      { $sort: { count: -1 } },
+        { $sort: { count: -1 } },
+      ])
     ]);
+
+    const stats = generalStats[0] || {
+      totalExecutions: 0,
+      avgExecutionTime: 0,
+      languagesUsed: [],
+      last24Hours: 0
+    };
 
     return res.status(HTTP_STATUS.OK).json({
       stats: {
-        ...stats,
+        totalExecutions: stats.totalExecutions,
+        avgExecutionTime: Math.round(stats.avgExecutionTime || 0),
+        languagesUsed: stats.languagesUsed?.length || 0,
+        last24Hours: stats.last24Hours,
         languageBreakdown,
       },
     });
@@ -242,10 +273,21 @@ export const getExecutionById = catchAsync(async (req: Request, res: Response, n
 
   const { id } = req.params;
 
+  // Validate execution ID
+  const validExecutionId = validateObjectId(id);
+  if (!validExecutionId) {
+    return res.status(HTTP_STATUS.BAD_REQUEST).json({
+      error: {
+        message: 'Invalid execution ID format',
+        code: ERROR_CODES.VALIDATION_ERROR,
+      },
+    });
+  }
+
   const execution = await CodeExecution.findOne({
-    _id: id,
+    _id: validExecutionId,
     userId: req.user.id, // Ensure user can only access their own executions
-  });
+  }).lean();
 
   if (!execution) {
     return res.status(HTTP_STATUS.NOT_FOUND).json({
