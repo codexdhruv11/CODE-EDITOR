@@ -38,7 +38,7 @@ class CodeExecutionService {
    * Execute code using Piston API
    * CRITICAL: All languages are available to all authenticated users (no premium restrictions)
    */
-  async executeCode(language: string, code: string): Promise<ExecutionResult> {
+  async executeCode(language: string, code: string, input?: string): Promise<ExecutionResult> {
     const startTime = Date.now();
 
     try {
@@ -58,7 +58,7 @@ class CodeExecutionService {
             content: code,
           },
         ],
-        stdin: '',
+        stdin: input || '',
         args: [],
         compile_timeout: 10000, // 10 seconds
         run_timeout: 3000, // 3 seconds
