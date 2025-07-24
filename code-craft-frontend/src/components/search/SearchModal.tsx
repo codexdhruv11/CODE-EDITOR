@@ -64,9 +64,21 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px] p-0 gap-0">
-        <DialogHeader className="px-4 py-3 border-b">
-          <div className="relative">
+      <DialogContent className="sm:max-w-[600px] p-0 gap-0" showCloseButton={false}>
+        <DialogHeader className="px-4 py-3 border-b relative">
+          {/* Close Dialog Button - positioned further right */}
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-3 top-3 h-6 w-6 rounded-full hover:bg-muted z-10"
+            onClick={onClose}
+            title="Close search"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+          
+          {/* Search Input Container */}
+          <div className="relative pr-12">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
             <Input
               type="search"
@@ -74,19 +86,9 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="pl-10 pr-10 border-0 focus-visible:ring-0"
+              className="pl-10 border-0 focus-visible:ring-0"
               autoFocus
             />
-            {searchQuery && (
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-7 w-7"
-                onClick={() => setSearchQuery("")}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            )}
           </div>
         </DialogHeader>
 
