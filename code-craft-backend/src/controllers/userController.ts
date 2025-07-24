@@ -3,6 +3,7 @@ import { User, CodeExecution, Star } from '../models';
 import { catchAsync } from '../middleware/errorHandler';
 import { HTTP_STATUS, ERROR_CODES } from '../utils/constants';
 import { logger } from '../utils/logger';
+import { validateObjectId } from '../utils/sanitization';
 
 /**
  * User controller handling user-related operations
@@ -24,7 +25,7 @@ export const getCurrentUser = catchAsync(async (req: Request, res: Response): Pr
     return;
   }
 
-  const user = await User.findById(req.user.id);
+  const user = await User.findById(req.user.id).lean();
 
   if (!user) {
     res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -36,8 +37,11 @@ export const getCurrentUser = catchAsync(async (req: Request, res: Response): Pr
     return;
   }
 
+  // Remove password field from response
+  const { password, ...userWithoutPassword } = user;
+
   res.status(HTTP_STATUS.OK).json({
-    user: user.toJSON(),
+    user: userWithoutPassword,
   });
 });
 
@@ -95,8 +99,20 @@ export const updateUser = catchAsync(async (req: Request, res: Response): Promis
 export const getUserStats = catchAsync(async (req: Request, res: Response): Promise<void> => {
   const { id: userId } = req.params;
 
-  // Find user by MongoDB ObjectId
-  const user = await User.findById(userId);
+  // Validate user ID
+  const validUserId = validateObjectId(userId);
+  if (!validUserId) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
+      error: {
+        message: 'Invalid user ID format',
+        code: ERROR_CODES.VALIDATION_ERROR,
+      },
+    });
+    return;
+  }
+
+  // Find user by MongoDB ObjectId using lean() for better performance
+  const user = await User.findById(validUserId).lean();
 
   if (!user) {
     res.status(HTTP_STATUS.NOT_FOUND).json({
@@ -109,26 +125,52 @@ export const getUserStats = catchAsync(async (req: Request, res: Response): Prom
   }
 
   try {
-    // Get execution statistics
-    const executionStats = await CodeExecution.getUserStats(user._id.toString());
-
-    // Get favorite language (most used)
-    const languageStats = await CodeExecution.aggregate([
-      { $match: { userId: user._id } },
-      { $group: { _id: '$language', count: { $sum: 1 } } },
-      { $sort: { count: -1 } },
-      { $limit: 1 },
+    // Use aggregation pipeline for better performance instead of multiple queries
+    const [executionStats, languageStats, starredCount] = await Promise.all([
+      CodeExecution.aggregate([
+        { $match: { userId: user._id } },
+        {
+          $group: {
+            _id: null,
+            totalExecutions: { $sum: 1 },
+            avgExecutionTime: { $avg: '$executionTime' },
+            languagesUsed: { $addToSet: '$language' },
+            last24Hours: {
+              $sum: {
+                $cond: [
+                  { $gte: ['$createdAt', new Date(Date.now() - 24 * 60 * 60 * 1000)] },
+                  1,
+                  0
+                ]
+              }
+            }
+          }
+        }
+      ]),
+      CodeExecution.aggregate([
+        { $match: { userId: user._id } },
+        { $group: { _id: '$language', count: { $sum: 1 } } },
+        { $sort: { count: -1 } },
+        { $limit: 1 },
+      ]),
+      Star.countDocuments({ userId: user._id })
     ]);
 
     const favoriteLanguage = languageStats.length > 0 ? languageStats[0]._id : null;
+    const stats = executionStats[0] || {
+      totalExecutions: 0,
+      avgExecutionTime: 0,
+      languagesUsed: [],
+      last24Hours: 0
+    };
 
-    // Get starred snippets count
-    const starredCount = await Star.countDocuments({ userId: user._id });
+    // Get recent executions with lean() for better performance
+    const recentExecutions = await CodeExecution.find({ userId: user._id })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .lean();
 
-    // Get recent executions
-    const recentExecutions = await CodeExecution.getRecentExecutions(user._id.toString(), 5);
-
-    const stats = {
+    const userStats = {
       user: {
         id: user._id,
         name: user.name,
@@ -136,11 +178,11 @@ export const getUserStats = catchAsync(async (req: Request, res: Response): Prom
         createdAt: user.createdAt,
       },
       executions: {
-        total: executionStats.totalExecutions,
-        languagesUsed: executionStats.languagesUsed,
+        total: stats.totalExecutions,
+        languagesUsed: stats.languagesUsed?.length || 0,
         favoriteLanguage,
-        avgExecutionTime: executionStats.avgExecutionTime,
-        last24Hours: executionStats.last24Hours,
+        avgExecutionTime: Math.round(stats.avgExecutionTime || 0),
+        last24Hours: stats.last24Hours,
         recent: recentExecutions,
       },
       snippets: {
@@ -148,7 +190,7 @@ export const getUserStats = catchAsync(async (req: Request, res: Response): Prom
       },
     };
 
-    res.status(HTTP_STATUS.OK).json({ stats });
+    res.status(HTTP_STATUS.OK).json({ stats: userStats });
   } catch (error) {
     logger.error('Failed to get user stats:', error);
     throw error;
@@ -161,7 +203,19 @@ export const getUserStats = catchAsync(async (req: Request, res: Response): Prom
 export const getUserProfile = catchAsync(async (req: Request, res: Response): Promise<void> => {
   const { id: userId } = req.params;
 
-  const user = await User.findById(userId);
+  // Validate user ID
+  const validUserId = validateObjectId(userId);
+  if (!validUserId) {
+    res.status(HTTP_STATUS.BAD_REQUEST).json({
+      error: {
+        message: 'Invalid user ID format',
+        code: ERROR_CODES.VALIDATION_ERROR,
+      },
+    });
+    return;
+  }
+
+  const user = await User.findById(validUserId).lean();
 
   if (!user) {
     res.status(HTTP_STATUS.NOT_FOUND).json({
