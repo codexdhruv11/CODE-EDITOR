@@ -9,6 +9,7 @@ import {
 import { requireAuth, optionalAuth } from '../middleware/auth';
 import { validateObjectId } from '../middleware/validation';
 import { starLimiter, generalLimiter } from '../middleware/rateLimiting';
+import { verifyCsrfToken } from '../middleware/csrf';
 
 const router = Router();
 
@@ -19,6 +20,7 @@ router.use(generalLimiter);
 router.post(
   '/snippets/:id/stars',
   requireAuth,
+  verifyCsrfToken,
   starLimiter,
   validateObjectId('id'),
   toggleStar
