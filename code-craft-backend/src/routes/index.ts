@@ -8,8 +8,16 @@ import executionRoutes from './executionRoutes';
 import webhookRoutes from './webhookRoutes';
 import { HTTP_STATUS } from '../utils/constants';
 import { logger } from '../utils/logger';
+import { verifyCsrfToken } from '../middleware/csrf';
 
 const router = Router();
+
+// CSRF token endpoint
+router.get('/csrf-token', (req: Request, res: Response) => {
+  res.status(HTTP_STATUS.OK).json({
+    csrfToken: req.csrfToken,
+  });
+});
 
 // Health check endpoint
 router.get('/health', (req: Request, res: Response) => {
@@ -41,14 +49,14 @@ router.get('/version', (req: Request, res: Response) => {
   });
 });
 
-// Mount route modules with appropriate prefixes
+// Mount route modules with appropriate prefixes and CSRF protection
 router.use('/auth', authRoutes);
-router.use('/users', userRoutes);
-router.use('/snippets', snippetRoutes);
-router.use('/comments', commentRoutes);
-router.use('/stars', starRoutes);
-router.use('/executions', executionRoutes);
-router.use('/languages', executionRoutes); // For supported languages endpoint
+router.use('/users', verifyCsrfToken, userRoutes);
+router.use('/snippets', verifyCsrfToken, snippetRoutes);
+router.use('/comments', verifyCsrfToken, commentRoutes);
+router.use('/stars', verifyCsrfToken, starRoutes);
+router.use('/executions', verifyCsrfToken, executionRoutes);
+router.use('/languages', executionRoutes); // For supported languages endpoint (read-only)
 router.use('/webhooks', webhookRoutes);
 
 // API documentation endpoint
