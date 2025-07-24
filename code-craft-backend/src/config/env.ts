@@ -13,6 +13,8 @@ export interface EnvironmentConfig {
   redisUrl?: string;
   logLevel: string;
   logFile: string;
+  cookieDomain?: string;
+  secureCookies: boolean;
 }
 
 interface RequiredEnvVar {
@@ -60,7 +62,9 @@ export const config: EnvironmentConfig = {
   corsOrigin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   redisUrl: process.env.REDIS_URL,
   logLevel: process.env.LOG_LEVEL || 'info',
-  logFile: process.env.LOG_FILE || 'logs/app.log'
+  logFile: process.env.LOG_FILE || 'logs/app.log',
+  cookieDomain: process.env.COOKIE_DOMAIN,
+  secureCookies: process.env.NODE_ENV === 'production'
 };
 
 export default config;
