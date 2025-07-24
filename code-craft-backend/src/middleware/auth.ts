@@ -4,6 +4,7 @@ import { User } from '../models/User';
 import { config } from '../config/env';
 import { logger } from '../utils/logger';
 import { HTTP_STATUS, ERROR_CODES } from '../utils/constants';
+import { validateObjectId } from '../utils/sanitization';
 
 // Extend Request interface to include user
 declare global {
@@ -45,7 +46,19 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     try {
       const decoded = jwt.verify(token, config.jwtSecret) as { userId: string };
       
-      const user = await User.findById(decoded.userId);
+      // Validate the userId from token
+      const validUserId = validateObjectId(decoded.userId);
+      if (!validUserId) {
+        res.status(HTTP_STATUS.UNAUTHORIZED).json({
+          error: {
+            message: 'Invalid user ID in token',
+            code: ERROR_CODES.INVALID_TOKEN,
+          },
+        });
+        return;
+      }
+      
+      const user = await User.findById(validUserId).lean();
       if (!user) {
         res.status(HTTP_STATUS.UNAUTHORIZED).json({
           error: {
@@ -107,14 +120,18 @@ export const optionalAuth = async (req: Request, res: Response, next: NextFuncti
     // Try to authenticate but don't fail if it doesn't work
     try {
       const decoded = jwt.verify(token, config.jwtSecret) as { userId: string };
-      const user = await User.findById(decoded.userId);
+      const validUserId = validateObjectId(decoded.userId);
       
-      if (user) {
-        req.user = {
-          id: user._id.toString(),
-          email: user.email,
-          name: user.name,
-        };
+      if (validUserId) {
+        const user = await User.findById(validUserId).lean();
+        
+        if (user) {
+          req.user = {
+            id: user._id.toString(),
+            email: user.email,
+            name: user.name,
+          };
+        }
       }
     } catch (error) {
       // Ignore authentication errors for optional auth
