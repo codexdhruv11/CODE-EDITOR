@@ -6,6 +6,7 @@ import { config } from '../config/env';
 import { logger } from '../utils/logger';
 import { HTTP_STATUS, ERROR_CODES } from '../utils/constants';
 import { setAuthCookie, clearAuthCookie } from '../utils/cookies';
+import * as crypto from 'crypto';
 
 // Get current user (for /auth/me endpoint)
 export const getMe = async (req: Request, res: Response): Promise<Response | void> => {
@@ -56,9 +57,12 @@ export const register = async (req: Request, res: Response): Promise<Response | 
     // Check if user already exists
     const existingUser = await User.findByEmail(email);
     if (existingUser) {
+      // Add small random delay to prevent timing attacks
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
+      
       return res.status(HTTP_STATUS.BAD_REQUEST).json({
         error: {
-          message: 'User with this email already exists',
+          message: 'Registration failed', // Generic message to prevent user enumeration
           code: ERROR_CODES.VALIDATION_ERROR,
         },
       });
@@ -112,9 +116,43 @@ export const login = async (req: Request, res: Response): Promise<Response | voi
   try {
     const { email, password } = req.body;
 
-    // Find user by email (with password field)
-    const user = await User.findByEmail(email);
-    if (!user) {
+    // Find user by email (with password field and lockout fields)
+    const user = await User.findOne({ email }).select('+password +failedLoginAttempts +lockUntil +sessionTokens');
+    
+    // Check if account is locked
+    if (user && user.isLocked()) {
+      // Add small random delay to prevent timing attacks
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
+      
+      const lockTimeRemaining = Math.ceil((user.lockUntil!.getTime() - Date.now()) / 1000 / 60);
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        error: {
+          message: `Account is locked due to too many failed login attempts. Please try again in ${lockTimeRemaining} minutes.`,
+          code: ERROR_CODES.UNAUTHORIZED,
+        },
+      });
+    }
+    
+    // Always perform password comparison to prevent timing attacks
+    let isPasswordValid = false;
+    if (user) {
+      isPasswordValid = await user.comparePassword(password);
+    } else {
+      // Perform dummy password comparison to maintain consistent timing
+      const dummyHash = '$2b$10$dummyhashtopreventtimingattacks';
+      await User.comparePasswordStatic(password, dummyHash);
+    }
+    
+    // Check if login is valid
+    if (!user || !isPasswordValid) {
+      // Increment failed login attempts if user exists
+      if (user) {
+        await user.incLoginAttempts();
+      }
+      
+      // Add small random delay to further prevent timing attacks
+      await new Promise(resolve => setTimeout(resolve, Math.random() * 100));
+      
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         error: {
           message: 'Invalid email or password',
@@ -122,16 +160,10 @@ export const login = async (req: Request, res: Response): Promise<Response | voi
         },
       });
     }
-
-    // Check password
-    const isPasswordValid = await user.comparePassword(password);
-    if (!isPasswordValid) {
-      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
-        error: {
-          message: 'Invalid email or password',
-          code: ERROR_CODES.UNAUTHORIZED,
-        },
-      });
+    
+    // Reset login attempts on successful login
+    if (user.failedLoginAttempts > 0) {
+      await user.resetLoginAttempts();
     }
 
     // Generate JWT token
