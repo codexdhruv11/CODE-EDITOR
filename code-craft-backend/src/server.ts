@@ -8,6 +8,7 @@ import { logger, requestLogger } from './utils/logger';
 import { globalErrorHandler, notFoundHandler } from './middleware/errorHandler';
 import { generalLimiter } from './middleware/rateLimiting';
 import { csrfProtection, verifyCsrfToken } from './middleware/csrf';
+import { requestIdMiddleware } from './middleware/requestId';
 import apiRoutes from './routes';
 
 // Create Express app
@@ -80,6 +81,9 @@ app.use(cors({
 // Cookie parser middleware (must be before routes)
 app.use(cookieParser());
 
+// Request ID middleware for correlation tracking
+app.use(requestIdMiddleware);
+
 // Body parsing middleware
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
@@ -111,8 +115,12 @@ app.get('/', (req, res) => {
   });
 });
 
-// Mount API routes
-app.use('/api', apiRoutes);
+// API versioning support
+const API_VERSION = 'v1';
+
+// Mount API routes with versioning
+app.use('/api', apiRoutes); // Default routes without version
+app.use(`/api/${API_VERSION}`, apiRoutes); // Versioned routes
 
 // 404 handler for unmatched routes
 app.use(notFoundHandler);
