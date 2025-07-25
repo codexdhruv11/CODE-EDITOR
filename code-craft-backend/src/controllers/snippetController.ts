@@ -6,7 +6,7 @@ import { HTTP_STATUS, ERROR_CODES } from '../utils/constants';
 import { parsePaginationParams, buildPaginationResponse } from '../utils/pagination';
 import { logger } from '../utils/logger';
 import { ISnippet } from '../models/Snippet';
-import { sanitizeSearchInput, validateObjectId, sanitizePagination } from '../utils/sanitization';
+import { sanitizeSearchInput, validateObjectId, sanitizePagination, sanitizeRequestBody, sanitizeMongoQuery } from '../utils/sanitization';
 
 /**
  * Snippet controller handling all snippet-related operations
@@ -27,7 +27,9 @@ export const createSnippet = catchAsync(async (req: Request, res: Response): Pro
     return;
   }
 
-  const { title, description, language, code } = req.body;
+  // Sanitize request body to prevent NoSQL injection
+  const sanitizedBody = sanitizeRequestBody(req.body);
+  const { title, description, language, code } = sanitizedBody;
 
   logger.info('Creating snippet', { 
     userId: req.user.id, 
@@ -69,7 +71,9 @@ export const createSnippet = catchAsync(async (req: Request, res: Response): Pro
  */
 export const getSnippets = catchAsync(async (req: Request, res: Response) => {
   const { page, limit, skip } = parsePaginationParams(req);
-  const { language, search, userId } = req.query;
+  // Sanitize query parameters to prevent NoSQL injection
+  const sanitizedQuery = sanitizeMongoQuery(req.query);
+  const { language, search, userId } = sanitizedQuery;
 
   // Build query
   interface SnippetQuery {
@@ -186,7 +190,9 @@ export const updateSnippet = catchAsync(async (req: Request, res: Response): Pro
   }
 
   const { id } = req.params;
-  const { title, description, language, code } = req.body;
+  // Sanitize request body to prevent NoSQL injection
+  const sanitizedBody = sanitizeRequestBody(req.body);
+  const { title, description, language, code } = sanitizedBody;
 
   if (!mongoose.Types.ObjectId.isValid(id)) {
     res.status(HTTP_STATUS.BAD_REQUEST).json({
