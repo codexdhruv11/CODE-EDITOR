@@ -6,6 +6,7 @@ import commentRoutes from './commentRoutes';
 import starRoutes from './starRoutes';
 import executionRoutes from './executionRoutes';
 import webhookRoutes from './webhookRoutes';
+import cspReportRoutes from './cspReportRoutes';
 import { HTTP_STATUS } from '../utils/constants';
 import { logger } from '../utils/logger';
 import { verifyCsrfToken } from '../middleware/csrf';
@@ -58,6 +59,9 @@ router.use('/stars', verifyCsrfToken, starRoutes);
 router.use('/executions', verifyCsrfToken, executionRoutes);
 router.use('/languages', executionRoutes); // For supported languages endpoint (read-only)
 router.use('/webhooks', webhookRoutes);
+
+// CSP reporting endpoint (no CSRF check as it's called by browsers)
+router.use('/', cspReportRoutes);
 
 // API documentation endpoint
 router.get('/docs', (req: Request, res: Response) => {
