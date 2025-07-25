@@ -34,7 +34,21 @@ export const getCookieOptions = (): CookieOptions => {
  */
 export const setAuthCookie = (res: Response, token: string): void => {
   const options = getCookieOptions();
-  res.cookie('auth-token', token, options);
+  
+  // Use __Host- prefix for enhanced security in production
+  // __Host- cookies must be: secure, path=/, no domain attribute
+  const cookieName = config.nodeEnv === 'production' && config.secureCookies
+    ? '__Host-auth-token'
+    : 'auth-token';
+  
+  // Ensure __Host- requirements are met
+  if (cookieName.startsWith('__Host-')) {
+    options.secure = true;
+    options.path = '/';
+    delete options.domain; // __Host- cookies cannot have domain attribute
+  }
+  
+  res.cookie(cookieName, token, options);
 };
 
 /**
@@ -42,8 +56,21 @@ export const setAuthCookie = (res: Response, token: string): void => {
  */
 export const clearAuthCookie = (res: Response): void => {
   const options = getCookieOptions();
+  
+  // Use same cookie name as setAuthCookie
+  const cookieName = config.nodeEnv === 'production' && config.secureCookies
+    ? '__Host-auth-token'
+    : 'auth-token';
+  
+  // Ensure __Host- requirements are met
+  if (cookieName.startsWith('__Host-')) {
+    options.secure = true;
+    options.path = '/';
+    delete options.domain;
+  }
+  
   // Set maxAge to 0 to immediately expire the cookie
-  res.cookie('auth-token', '', { ...options, maxAge: 0 });
+  res.cookie(cookieName, '', { ...options, maxAge: 0 });
 };
 
 /**
