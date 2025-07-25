@@ -83,21 +83,17 @@ const fallbackAnimations = {
   }
 };
 
-// Import ReactBits animations
-import { 
-  fadeIn, 
-  slideUp, 
-  slideDown, 
-  slideLeft, 
-  slideRight, 
-  scaleIn, 
-  staggerContainer, 
-  staggerItem, 
-  bounceIn, 
-  rotateIn 
-} from '@appletosolutions/reactbits';
-
-export { fadeIn, slideUp, slideDown, slideLeft, slideRight, scaleIn, staggerContainer, staggerItem, bounceIn, rotateIn };
+// Use built-in animations instead of external package
+export const fadeIn = fallbackAnimations.fadeIn;
+export const slideUp = fallbackAnimations.slideUp;
+export const slideDown = fallbackAnimations.slideDown;
+export const slideLeft = fallbackAnimations.slideLeft;
+export const slideRight = fallbackAnimations.slideRight;
+export const scaleIn = fallbackAnimations.scaleIn;
+export const staggerContainer = fallbackAnimations.staggerContainer;
+export const staggerItem = fallbackAnimations.staggerItem;
+export const bounceIn = fallbackAnimations.bounceIn;
+export const rotateIn = fallbackAnimations.rotateIn;
 
 /**
  * Custom animation variants for Framer Motion (fallback if ReactBits not available)
