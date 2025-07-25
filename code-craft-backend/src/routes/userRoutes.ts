@@ -4,10 +4,12 @@ import {
   updateUser,
   getUserStats,
   getUserProfile,
+  changePassword,
 } from '../controllers/userController';
 import { requireAuth } from '../middleware/auth';
-import { validateUserUpdate, validateObjectId } from '../middleware/validation';
+import { validateUserUpdate, validateObjectId, validatePasswordChange } from '../middleware/validation';
 import { generalLimiter } from '../middleware/rateLimiting';
+import { verifyCsrfToken } from '../middleware/csrf';
 
 const router = Router();
 
@@ -19,7 +21,10 @@ router.use(generalLimiter);
 router.get('/me', requireAuth, getCurrentUser);
 
 // Update user profile (requires authentication)
-router.patch('/me', requireAuth, validateUserUpdate, updateUser);
+router.patch('/me', requireAuth, verifyCsrfToken, validateUserUpdate, updateUser);
+
+// Change password (requires authentication)
+router.post('/me/change-password', requireAuth, verifyCsrfToken, validatePasswordChange, changePassword);
 
 // Get user statistics (public)
 router.get('/:id/stats', validateObjectId('id'), getUserStats);
