@@ -4,6 +4,7 @@ import { catchAsync } from '../middleware/errorHandler';
 import { HTTP_STATUS, ERROR_CODES } from '../utils/constants';
 import { logger } from '../utils/logger';
 import { validateObjectId } from '../utils/sanitization';
+import { clearAuthCookie } from '../utils/cookies';
 
 /**
  * User controller handling user-related operations
@@ -235,4 +236,60 @@ export const getUserProfile = catchAsync(async (req: Request, res: Response): Pr
   };
 
   res.status(HTTP_STATUS.OK).json({ user: publicProfile });
+});
+
+/**
+ * Change user password
+ */
+export const changePassword = catchAsync(async (req: Request, res: Response): Promise<void> => {
+  if (!req.user) {
+    res.status(HTTP_STATUS.UNAUTHORIZED).json({
+      error: {
+        message: 'User not authenticated',
+        code: ERROR_CODES.UNAUTHORIZED,
+      },
+    });
+    return;
+  }
+
+  const { currentPassword, newPassword } = req.body;
+  
+  // Get user with password field
+  const user = await User.findById(req.user.id).select('+password +sessionTokens');
+  
+  if (!user) {
+    res.status(HTTP_STATUS.NOT_FOUND).json({
+      error: {
+        message: 'User not found',
+        code: ERROR_CODES.NOT_FOUND,
+      },
+    });
+    return;
+  }
+  
+  // Verify current password
+  const isPasswordValid = await user.comparePassword(currentPassword);
+  
+  if (!isPasswordValid) {
+    res.status(HTTP_STATUS.UNAUTHORIZED).json({
+      error: {
+        message: 'Current password is incorrect',
+        code: ERROR_CODES.UNAUTHORIZED,
+      },
+    });
+    return;
+  }
+  
+  // Update password (this will trigger the pre-save hook to hash it and invalidate sessions)
+  user.password = newPassword;
+  await user.save();
+  
+  // Clear auth cookie to force re-login
+  clearAuthCookie(res);
+  
+  logger.info(`Password changed for user: ${user.email}`);
+  
+  res.status(HTTP_STATUS.OK).json({
+    message: 'Password changed successfully. Please login again with your new password.',
+  });
 });
