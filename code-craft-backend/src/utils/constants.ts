@@ -84,9 +84,12 @@ export const SUPPORTED_LANGUAGES: LanguageConfig[] = [
   }
 ];
 
+import { config } from '../config/env';
+
 // API Constants
 export const API_CONSTANTS = {
-  PISTON_API_URL: 'https://emkc.org/api/v2/piston/execute',
+  // External URLs should be configured via environment variables for security
+  PISTON_API_URL: config.pistonApiUrl || 'https://emkc.org/api/v2/piston/execute',
   DEFAULT_PAGE_SIZE: 20,
   MAX_PAGE_SIZE: 100,
   MAX_CODE_LENGTH: 50000,
