@@ -83,28 +83,19 @@ const fallbackAnimations = {
   }
 };
 
-// ReactBits animations - fallback to custom implementations if package not available
-let fadeIn, slideUp, slideDown, slideLeft, slideRight, scaleIn, staggerContainer, staggerItem, bounceIn, rotateIn;
-
-try {
-  const reactBits = require('@appletosolutions/reactbits');
-  ({ fadeIn, slideUp, slideDown, slideLeft, slideRight, scaleIn, staggerContainer, staggerItem, bounceIn, rotateIn } = reactBits);
-} catch (error) {
-  // Fallback implementations if ReactBits is not available
-  // ReactBits not available, using fallback animations
-  
-  // Assign fallback animations
-  fadeIn = fallbackAnimations.fadeIn;
-  slideUp = fallbackAnimations.slideUp;
-  slideDown = fallbackAnimations.slideDown;
-  slideLeft = fallbackAnimations.slideLeft;
-  slideRight = fallbackAnimations.slideRight;
-  scaleIn = fallbackAnimations.scaleIn;
-  staggerContainer = fallbackAnimations.staggerContainer;
-  staggerItem = fallbackAnimations.staggerItem;
-  bounceIn = fallbackAnimations.bounceIn;
-  rotateIn = fallbackAnimations.rotateIn;
-}
+// Import ReactBits animations
+import { 
+  fadeIn, 
+  slideUp, 
+  slideDown, 
+  slideLeft, 
+  slideRight, 
+  scaleIn, 
+  staggerContainer, 
+  staggerItem, 
+  bounceIn, 
+  rotateIn 
+} from '@appletosolutions/reactbits';
 
 export { fadeIn, slideUp, slideDown, slideLeft, slideRight, scaleIn, staggerContainer, staggerItem, bounceIn, rotateIn };
 

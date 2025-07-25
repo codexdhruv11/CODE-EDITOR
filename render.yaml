@@ -1,0 +1,43 @@
+services:
+  # Backend Service
+  - type: web
+    name: code-craft-backend
+    runtime: node
+    repo: https://github.com/YOUR_USERNAME/YOUR_REPO_NAME # Update this
+    buildCommand: cd code-craft-backend && npm install && npm run build
+    startCommand: cd code-craft-backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 5000
+      - key: MONGODB_URI
+        sync: false # Add your MongoDB connection string in Render dashboard
+      - key: JWT_SECRET
+        generateValue: true # Generates a random secure string
+      - key: CORS_ORIGIN
+        value: https://code-craft-frontend.onrender.com # Update with your frontend URL
+    healthCheckPath: /api/health
+    plan: free # or "starter" for paid plan
+
+  # Frontend Service
+  - type: web
+    name: code-craft-frontend
+    runtime: node
+    repo: https://github.com/YOUR_USERNAME/YOUR_REPO_NAME # Update this
+    buildCommand: cd code-craft-frontend && npm install && npm run build
+    startCommand: cd code-craft-frontend && npm install -g serve && serve -s build -l 3000
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: REACT_APP_API_URL
+        value: https://code-craft-backend.onrender.com # Update with your backend URL
+    healthCheckPath: /
+    plan: free # or "starter" for paid plan
+
+# Database (optional - if you want to use Render's PostgreSQL)
+# databases:
+#   - name: code-craft-db
+#     databaseName: codecraft
+#     user: codecraft
+#     plan: free
