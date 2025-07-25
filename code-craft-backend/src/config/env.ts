@@ -15,6 +15,7 @@ export interface EnvironmentConfig {
   logFile: string;
   cookieDomain?: string;
   secureCookies: boolean;
+  pistonApiUrl?: string;
 }
 
 interface RequiredEnvVar {
@@ -37,10 +38,41 @@ const validateRequiredEnvVars = (): void => {
     throw new Error(errorMessage);
   }
 
-  // Validate JWT_SECRET length for security
+  // Validate JWT_SECRET length for security (256-bit minimum)
   const jwtSecret = process.env.JWT_SECRET!;
   if (jwtSecret.length < 32) {
-    throw new Error('JWT_SECRET must be at least 32 characters long for security');
+    throw new Error('JWT_SECRET must be at least 32 characters long (256 bits) for security');
+  }
+  
+  // Additional validation for JWT secret complexity
+  if (!/^[A-Za-z0-9+/=]{32,}$/.test(jwtSecret)) {
+    throw new Error('JWT_SECRET must contain only alphanumeric characters and +/= symbols');
+  }
+  
+  // Warn if JWT secret is not optimal length (64 chars = 512 bits)
+  if (jwtSecret.length < 64 && process.env.NODE_ENV === 'production') {
+    console.warn('Warning: JWT_SECRET should be at least 64 characters for production environments');
+  }
+  
+  // Validate PISTON_API_URL if provided (SSRF prevention)
+  if (process.env.PISTON_API_URL) {
+    try {
+      const url = new URL(process.env.PISTON_API_URL);
+      // Ensure it's HTTPS in production
+      if (process.env.NODE_ENV === 'production' && url.protocol !== 'https:') {
+        throw new Error('PISTON_API_URL must use HTTPS in production');
+      }
+      // Validate against allowed domains (whitelist approach)
+      const allowedDomains = ['emkc.org', 'localhost', '127.0.0.1'];
+      if (!allowedDomains.some(domain => url.hostname === domain || url.hostname.endsWith(`.${domain}`))) {
+        throw new Error(`PISTON_API_URL domain not in whitelist: ${url.hostname}`);
+      }
+    } catch (error) {
+      if (error instanceof Error) {
+        throw new Error(`Invalid PISTON_API_URL: ${error.message}`);
+      }
+      throw new Error('Invalid PISTON_API_URL format');
+    }
   }
 };
 
@@ -64,7 +96,8 @@ export const config: EnvironmentConfig = {
   logLevel: process.env.LOG_LEVEL || 'info',
   logFile: process.env.LOG_FILE || 'logs/app.log',
   cookieDomain: process.env.COOKIE_DOMAIN,
-  secureCookies: process.env.NODE_ENV === 'production'
+  secureCookies: process.env.NODE_ENV === 'production',
+  pistonApiUrl: process.env.PISTON_API_URL
 };
 
 export default config;
