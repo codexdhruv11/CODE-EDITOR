@@ -26,6 +26,7 @@
   "dependencies": {
     "@types/cookie-parser": "^1.4.9",
     "@types/ms": "^2.1.0",
+    "@types/uuid": "^10.0.0",
     "axios": "^1.6.2",
     "bcrypt": "^5.1.1",
     "body-parser": "^2.2.0",
@@ -41,6 +42,7 @@
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.0.3",
     "ms": "^2.1.3",
+    "uuid": "^11.1.0",
     "winston": "^3.11.0"
   },
   "devDependencies": {
