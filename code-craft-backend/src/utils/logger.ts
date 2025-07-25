@@ -22,8 +22,35 @@ const colors = {
 // Tell winston that you want to link the colors
 winston.addColors(colors);
 
+// Helper function to filter sensitive data from logs
+const filterSensitiveData = (obj: any): any => {
+  if (typeof obj !== 'object' || obj === null) {
+    return obj;
+  }
+  
+  const filtered = Array.isArray(obj) ? [...obj] : { ...obj };
+  const sensitiveFields = ['password', 'token', 'jwt', 'secret', 'authorization', 'cookie', 'session', 'creditcard', 'ssn', 'apikey', 'api_key'];
+  
+  Object.keys(filtered).forEach(key => {
+    const lowerKey = key.toLowerCase();
+    if (sensitiveFields.some(field => lowerKey.includes(field))) {
+      filtered[key] = '[REDACTED]';
+    } else if (typeof filtered[key] === 'object') {
+      filtered[key] = filterSensitiveData(filtered[key]);
+    }
+  });
+  
+  return filtered;
+};
+
+// Custom format to filter sensitive data
+const filterFormat = winston.format((info) => {
+  return filterSensitiveData(info);
+})();
+
 // Define format for logs
 const format = winston.format.combine(
+  filterFormat,
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss:ms' }),
   winston.format.colorize({ all: true }),
   winston.format.printf(
@@ -94,12 +121,24 @@ export const requestLogger = (req: any, res: any, next: any) => {
   
   res.on('finish', () => {
     const duration = Date.now() - start;
-    const message = `${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`;
+    const requestId = req.requestId || 'unknown';
+    const message = `[${requestId}] ${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`;
+    
+    const logData = {
+      requestId,
+      method: req.method,
+      url: req.originalUrl,
+      statusCode: res.statusCode,
+      duration,
+      ip: req.ip,
+      userAgent: req.get('User-Agent')?.substring(0, 100),
+      userId: req.user?.id,
+    };
     
     if (res.statusCode >= 400) {
-      httpLogger.error(message);
+      httpLogger.error(message, logData);
     } else {
-      httpLogger.http(message);
+      httpLogger.http(message, logData);
     }
   });
   
