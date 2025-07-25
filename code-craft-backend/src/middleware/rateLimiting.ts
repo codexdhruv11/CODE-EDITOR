@@ -29,10 +29,11 @@ export const createRateLimiter = (options: {
   });
 };
 
-// Custom key generator for authenticated endpoints
+// Custom key generator for authenticated endpoints - always uses IP for security
 const authKeyGenerator = (req: Request): string => {
-  // Use user ID if authenticated, otherwise fall back to IP
-  return req.user?.id || req.ip || 'unknown';
+  // Always use IP address for rate limiting to prevent abuse
+  // This prevents users from bypassing limits by creating multiple accounts
+  return req.ip || req.headers['x-forwarded-for']?.toString().split(',')[0] || 'unknown';
 };
 
 // Custom error handler for rate limiting
@@ -48,12 +49,12 @@ const rateLimitHandler = (req: Request, res: Response) => {
   });
 };
 
-// Guest key generator - uses IP for guest users, user ID for authenticated
+// IP-based key generator - always uses IP address for consistent rate limiting
 const guestAwareKeyGenerator = (req: Request): string => {
-  if (req.user?.id) {
-    return `user-${req.user.id}`;
-  }
-  return `guest-${req.ip || 'unknown'}`;
+  // Always use IP to prevent rate limit bypass through authentication
+  const ipAddress = req.ip || req.headers['x-forwarded-for']?.toString().split(',')[0] || 'unknown';
+  const userType = req.user?.id ? 'auth' : 'guest';
+  return `${userType}-${ipAddress}`;
 };
 
 // Code execution rate limiter (strictest, different limits for guests)
@@ -121,11 +122,14 @@ export const commentLimiter = rateLimit({
   },
 });
 
-// General API rate limiter
+// General API rate limiter with enhanced IP detection
 export const generalLimiter = rateLimit({
   windowMs: RATE_LIMITS.GENERAL_API.windowMs,
   max: RATE_LIMITS.GENERAL_API.max,
-  keyGenerator: (req: Request) => req.ip || 'unknown',
+  keyGenerator: (req: Request) => {
+    // Enhanced IP detection for proxied requests
+    return req.ip || req.headers['x-forwarded-for']?.toString().split(',')[0] || req.headers['x-real-ip']?.toString() || 'unknown';
+  },
   handler: rateLimitHandler,
   standardHeaders: true,
   legacyHeaders: false,
@@ -136,6 +140,9 @@ export const generalLimiter = rateLimit({
       retryAfter: Math.ceil(RATE_LIMITS.GENERAL_API.windowMs / 1000),
     },
   },
+  // Skip successful requests to prevent counting failed requests
+  skipSuccessfulRequests: false,
+  skipFailedRequests: false,
 });
 
 // Star/unstar rate limiter (moderate)
@@ -159,7 +166,10 @@ export const starLimiter = rateLimit({
 export const webhookLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 100, // 100 webhook calls per minute
-  keyGenerator: (req: Request) => req.ip || 'unknown',
+  keyGenerator: (req: Request) => {
+    // Enhanced IP detection for webhooks
+    return req.ip || req.headers['x-forwarded-for']?.toString().split(',')[0] || req.headers['x-real-ip']?.toString() || 'unknown';
+  },
   handler: rateLimitHandler,
   standardHeaders: true,
   legacyHeaders: false,
@@ -170,4 +180,28 @@ export const webhookLimiter = rateLimit({
       retryAfter: 60,
     },
   },
+});
+
+// Authentication rate limiter to prevent brute force attacks
+export const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 failed attempts per 15 minutes
+  keyGenerator: (req: Request) => {
+    // Use IP for auth endpoints to prevent credential stuffing
+    return req.ip || req.headers['x-forwarded-for']?.toString().split(',')[0] || 'unknown';
+  },
+  handler: (req: Request, res: Response) => {
+    logger.warn(`Authentication rate limit exceeded for ${req.ip} on ${req.path}`);
+    
+    return res.status(HTTP_STATUS.TOO_MANY_REQUESTS).json({
+      error: {
+        message: 'Too many authentication attempts, please try again later',
+        code: ERROR_CODES.RATE_LIMIT_EXCEEDED,
+        retryAfter: 900, // 15 minutes
+      },
+    });
+  },
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true, // Only count failed attempts
 });
