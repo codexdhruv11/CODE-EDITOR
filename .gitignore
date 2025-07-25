@@ -17,6 +17,109 @@ pnpm-lock.yaml
 .env.development
 .env.test
 .env.production
+.env.*.local
+
+# Credentials and secrets
+**/credentials/
+**/secrets/
+*.pem
+*.key
+*.cert
+*.crt
+*.p12
+*.pfx
+*.jks
+*.keystore
+*secret*
+*credential*
+*password*
+*token*
+*auth*config*
+*oauth*
+*api_key*
+*apikey*
+*client_secret*
+*client_id*
+*access_key*
+*aws_*
+firebase-adminsdk-*.json
+*-service-account.json
+*service-account*.json
+*serviceAccount*.json
+gcloud-*.json
+*firebase*.json
+*stripe*.json
+*sendgrid*.json
+*twilio*.json
+*mailchimp*.json
+
+# JWT specific
+*jwt*secret*
+*jwt*key*
+*jwt*token*
+*jwt*private*
+*jwt.config.js
+*jwt.config.json
+
+# Redis specific
+*redis*url*
+*redis*connection*
+*redis*credentials*
+*redis*password*
+*redis*auth*
+redis.config.js
+redis.config.json
+
+# MongoDB specific
+*mongodb*credentials*
+*mongodb*connection*
+*mongo*credentials*
+*mongo*connection*
+*atlas*credentials*
+*atlas*connection*
+mongodb.config.js
+mongodb.config.json
+
+# Config files that may contain sensitive data
+config.local.js
+config.dev.js
+config.development.js
+config.prod.js
+config.production.js
+config.staging.js
+*config.private.*
+*private.config.*
+*local.config.*
+
+# Example files that might accidentally contain real credentials
+# (But keep .env.example and similar in the repo as templates)
+*.env.example.local
+*.env.local.example.local
+
+# Local configuration overrides
+*.override.json
+*.override.js
+*.override.ts
+*.override.yaml
+*.override.yml
+
+# Backup files and dumps
+*.bak
+*.backup
+*.old
+*.orig
+*.save
+*.swp
+dump/
+*dump*
+*backup*
+*.dump
+*.sql.gz
+*.sql.bz2
+*.sql.xz
+*.sql.zip
+*.mongodb
+*.mongodump
 
 # Build output
 dist/

@@ -1,0 +1,156 @@
+name: Deploy to Render
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  workflow_dispatch: # Allow manual triggering
+
+env:
+  # These will be set as GitHub secrets
+  RENDER_BACKEND_DEPLOY_HOOK: ${{ secrets.RENDER_BACKEND_DEPLOY_HOOK }}
+  RENDER_FRONTEND_DEPLOY_HOOK: ${{ secrets.RENDER_FRONTEND_DEPLOY_HOOK }}
+
+jobs:
+  deploy:
+    name: Deploy Services
+    runs-on: ubuntu-latest
+    
+    strategy:
+      matrix:
+        service:
+          - name: backend
+            deploy_hook_secret: RENDER_BACKEND_DEPLOY_HOOK
+            directory: code-craft-backend
+          - name: frontend
+            deploy_hook_secret: RENDER_FRONTEND_DEPLOY_HOOK
+            directory: code-craft-frontend
+      fail-fast: false # Continue deploying other services if one fails
+      max-parallel: 2 # Deploy both services simultaneously
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Deploy ${{ matrix.service.name }} to Render
+        id: deploy
+        run: |
+          echo "🚀 Starting deployment of ${{ matrix.service.name }}..."
+          
+          # Get the deploy hook URL from secrets
+          DEPLOY_HOOK="${{ secrets[matrix.service.deploy_hook_secret] }}"
+          
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "❌ Error: Deploy hook not configured for ${{ matrix.service.name }}"
+            echo "Please set the ${{ matrix.service.deploy_hook_secret }} secret in GitHub repository settings"
+            exit 1
+          fi
+          
+          # Trigger the deployment
+          response=$(curl -X POST "$DEPLOY_HOOK" \
+            -H "Accept: application/json" \
+            -w "\n%{http_code}" \
+            --fail-with-body \
+            2>&1)
+          
+          # Extract HTTP status code
+          http_code=$(echo "$response" | tail -n 1)
+          body=$(echo "$response" | sed '$d')
+          
+          echo "Response body: $body"
+          echo "HTTP status code: $http_code"
+          
+          # Check if deployment was triggered successfully
+          if [ "$http_code" = "200" ] || [ "$http_code" = "201" ] || [ "$http_code" = "202" ]; then
+            echo "✅ Deployment triggered successfully for ${{ matrix.service.name }}"
+            echo "deployment_status=success" >> $GITHUB_OUTPUT
+          else
+            echo "❌ Failed to trigger deployment for ${{ matrix.service.name }}"
+            echo "deployment_status=failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+      
+      - name: Report Deployment Status
+        if: always()
+        run: |
+          if [ "${{ steps.deploy.outputs.deployment_status }}" = "success" ]; then
+            echo "### ✅ ${{ matrix.service.name }} deployment triggered successfully!" >> $GITHUB_STEP_SUMMARY
+            echo "The deployment is now in progress on Render." >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ❌ ${{ matrix.service.name }} deployment failed!" >> $GITHUB_STEP_SUMMARY
+            echo "Please check the logs above for more details." >> $GITHUB_STEP_SUMMARY
+          fi
+
+  deployment-summary:
+    name: Deployment Summary
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: always()
+    
+    steps:
+      - name: Check Deployment Results
+        run: |
+          echo "## 📊 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          
+          # Check overall status
+          if [ "${{ needs.deploy.result }}" = "success" ]; then
+            echo "### 🎉 All deployments triggered successfully!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Both backend and frontend services are being deployed to Render." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Next Steps:**" >> $GITHUB_STEP_SUMMARY
+            echo "- Monitor the deployment progress in your Render dashboard" >> $GITHUB_STEP_SUMMARY
+            echo "- Check service logs if any issues arise" >> $GITHUB_STEP_SUMMARY
+            echo "- Verify both services are running correctly after deployment" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "### ⚠️ Some deployments may have failed!" >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "Please check the individual job logs for more details." >> $GITHUB_STEP_SUMMARY
+            echo "" >> $GITHUB_STEP_SUMMARY
+            echo "**Troubleshooting:**" >> $GITHUB_STEP_SUMMARY
+            echo "1. Ensure all deploy hook secrets are correctly configured" >> $GITHUB_STEP_SUMMARY
+            echo "2. Verify Render services are properly set up" >> $GITHUB_STEP_SUMMARY
+            echo "3. Check Render dashboard for any service-specific issues" >> $GITHUB_STEP_SUMMARY
+          fi
+          
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "🔗 [View Render Dashboard](https://dashboard.render.com)" >> $GITHUB_STEP_SUMMARY
+      
+      - name: Send Notification (Optional)
+        if: failure()
+        run: |
+          echo "⚠️ Deployment workflow completed with failures"
+          # You can add Slack, Discord, or email notifications here
+
+  # Optional: Wait for services to be healthy after deployment
+  health-check:
+    name: Health Check (Optional)
+    needs: deploy
+    runs-on: ubuntu-latest
+    if: success()
+    continue-on-error: true # Don't fail the workflow if health checks fail
+    
+    steps:
+      - name: Wait for Services to Deploy
+        run: |
+          echo "⏳ Waiting 60 seconds for services to deploy..."
+          sleep 60
+      
+      - name: Check Backend Health
+        if: vars.BACKEND_URL != ''
+        continue-on-error: true
+        run: |
+          echo "Checking backend health at ${{ vars.BACKEND_URL }}/health"
+          curl -f -s -o /dev/null -w "Backend HTTP Status: %{http_code}\n" \
+            "${{ vars.BACKEND_URL }}/health" || echo "Backend health check failed"
+      
+      - name: Check Frontend Health
+        if: vars.FRONTEND_URL != ''
+        continue-on-error: true
+        run: |
+          echo "Checking frontend health at ${{ vars.FRONTEND_URL }}"
+          curl -f -s -o /dev/null -w "Frontend HTTP Status: %{http_code}\n" \
+            "${{ vars.FRONTEND_URL }}" || echo "Frontend health check failed"
