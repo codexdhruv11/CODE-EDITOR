@@ -37,10 +37,32 @@ export const sanitizeMongoQuery = (obj: any): any => {
     if (key.startsWith('$')) {
       continue;
     }
+    // Also remove keys containing dots (nested queries)
+    if (key.includes('.')) {
+      continue;
+    }
     sanitized[key] = sanitizeMongoQuery(value);
   }
 
   return sanitized;
+};
+
+/**
+ * Deep sanitizes request body to prevent NoSQL injection
+ * Removes MongoDB operators and dangerous patterns
+ * @param body - Request body to sanitize
+ * @returns Sanitized body
+ */
+export const sanitizeRequestBody = (body: any): any => {
+  if (!body || typeof body !== 'object') {
+    return body;
+  }
+  
+  // Create a deep copy to avoid mutating original
+  const sanitized = JSON.parse(JSON.stringify(body));
+  
+  // Remove any MongoDB operators
+  return sanitizeMongoQuery(sanitized);
 };
 
 /**
