@@ -48,6 +48,26 @@ class CodeExecutionService {
         throw new Error(`Unsupported language: ${language}`);
       }
 
+      // Validate code size
+      if (!code || code.length === 0) {
+        throw new Error('Code cannot be empty');
+      }
+      
+      if (code.length > API_CONSTANTS.MAX_CODE_LENGTH) {
+        throw new Error(`Code exceeds maximum length of ${API_CONSTANTS.MAX_CODE_LENGTH} characters`);
+      }
+      
+      // Validate input size if provided
+      if (input && input.length > 10000) {
+        throw new Error('Input exceeds maximum length of 10,000 characters');
+      }
+      
+      // Calculate total payload size (rough estimation)
+      const payloadSize = code.length + (input?.length || 0) + 500; // 500 bytes for JSON structure
+      if (payloadSize > 100000) { // 100KB limit
+        throw new Error('Total payload size exceeds maximum limit');
+      }
+
       // Prepare request payload for Piston API
       const payload = {
         language: languageConfig.pistonRuntime.language,
