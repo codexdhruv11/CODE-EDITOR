@@ -23,7 +23,8 @@ declare global {
 export const requireAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Extract token from cookie (browser clients) or Authorization header (mobile/API clients)
-    let token = req.cookies['auth-token'];
+    // Check both regular and __Host- prefixed cookies
+    let token = req.cookies['__Host-auth-token'] || req.cookies['auth-token'];
     
     // If no cookie token, check Authorization header for mobile/API clients
     if (!token) {
@@ -44,7 +45,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
     }
 
     try {
-      const decoded = jwt.verify(token, config.jwtSecret) as { userId: string };
+      const decoded = jwt.verify(token, config.jwtSecret) as { userId: string; iat?: number };
       
       // Validate the userId from token
       const validUserId = validateObjectId(decoded.userId);
@@ -58,7 +59,7 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
         return;
       }
       
-      const user = await User.findById(validUserId).lean();
+      const user = await User.findById(validUserId).select('+passwordChangedAt').lean();
       if (!user) {
         res.status(HTTP_STATUS.UNAUTHORIZED).json({
           error: {
@@ -67,6 +68,20 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
           },
         });
         return;
+      }
+      
+      // Check if token was issued before password change
+      if (user.passwordChangedAt && decoded.iat) {
+        const passwordChangedTime = Math.floor(user.passwordChangedAt.getTime() / 1000);
+        if (decoded.iat < passwordChangedTime) {
+          res.status(HTTP_STATUS.UNAUTHORIZED).json({
+            error: {
+              message: 'Token invalidated due to password change. Please login again.',
+              code: ERROR_CODES.INVALID_TOKEN,
+            },
+          });
+          return;
+        }
       }
 
       req.user = {
@@ -101,7 +116,8 @@ export const requireAuth = async (req: Request, res: Response, next: NextFunctio
 export const optionalAuth = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   try {
     // Extract token from cookie (browser clients) or Authorization header (mobile/API clients)
-    let token = req.cookies['auth-token'];
+    // Check both regular and __Host- prefixed cookies
+    let token = req.cookies['__Host-auth-token'] || req.cookies['auth-token'];
     
     // If no cookie token, check Authorization header for mobile/API clients
     if (!token) {
