@@ -9,6 +9,10 @@ export const connectDatabase = async (): Promise<void> => {
       throw new Error('MONGODB_URI environment variable is not defined');
     }
 
+    // Check if this is a production environment or MongoDB Atlas connection
+    const isProduction = process.env.NODE_ENV === 'production';
+    const isAtlasConnection = mongoUri.includes('mongodb+srv://') || mongoUri.includes('.mongodb.net');
+    
     const options = {
       // Optimized connection pooling
       maxPoolSize: 20, // Increase pool size for better performance
@@ -24,7 +28,22 @@ export const connectDatabase = async (): Promise<void> => {
       readPreference: 'primaryPreferred' as const,
       // Buffer settings
       bufferCommands: false,
+      // TLS/SSL Configuration for security
+      tls: isProduction || isAtlasConnection, // Enable TLS in production or for Atlas
+      tlsAllowInvalidCertificates: false, // Never allow invalid certificates
+      tlsAllowInvalidHostnames: false, // Enforce hostname verification
+      // Additional security options
+      authSource: process.env.MONGODB_AUTH_SOURCE || 'admin',
+      // Enable compression for better network efficiency
+      compressors: ['snappy', 'zlib'],
     };
+    
+    // Log security status
+    if (options.tls) {
+      logger.info('MongoDB TLS/SSL encryption enabled');
+    } else {
+      logger.warn('MongoDB TLS/SSL encryption disabled - only use for local development');
+    }
 
     await mongoose.connect(mongoUri, options);
     
