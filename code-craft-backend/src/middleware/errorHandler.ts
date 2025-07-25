@@ -48,10 +48,10 @@ const handleValidationError = (err: MongooseError.ValidationError): AppError => 
 // Handle Mongoose duplicate key errors
 const handleDuplicateKeyError = (err: any): AppError => {
   const field = Object.keys(err.keyValue)[0];
-  const value = err.keyValue[field];
   
+  // Don't expose the actual value to prevent information leakage
   return new AppError(
-    `${field} '${value}' already exists`,
+    `${field} already exists`,
     HTTP_STATUS.CONFLICT,
     ERROR_CODES.ALREADY_EXISTS
   );
@@ -59,8 +59,9 @@ const handleDuplicateKeyError = (err: any): AppError => {
 
 // Handle Mongoose cast errors (invalid ObjectId)
 const handleCastError = (err: MongooseError.CastError): AppError => {
+  // Don't expose the actual value to prevent information leakage
   return new AppError(
-    `Invalid ${err.path}: ${err.value}`,
+    `Invalid ${err.path}`,
     HTTP_STATUS.BAD_REQUEST,
     ERROR_CODES.INVALID_INPUT
   );
@@ -85,11 +86,14 @@ const handleJWTError = (err: JsonWebTokenError): AppError => {
 
 // Send error response in development
 const sendErrorDev = (err: AppError, res: Response): void => {
+  // Sanitize stack trace to remove absolute paths
+  const sanitizedStack = err.stack?.replace(/[A-Z]:\\[^\n]+/g, '[path]');
+  
   const errorResponse: ErrorResponse = {
     error: {
       message: err.message,
       code: err.code,
-      stack: err.stack,
+      stack: sanitizedStack,
     },
   };
 
@@ -133,13 +137,14 @@ export const globalErrorHandler = (
   let error = { ...err };
   error.message = err.message;
 
-  // Log error
+  // Log error with sanitized information
   logger.error(`Error ${err.statusCode || 500}: ${err.message}`, {
     url: req.originalUrl,
     method: req.method,
     ip: req.ip,
-    userAgent: req.get('User-Agent'),
-    stack: err.stack,
+    userAgent: req.get('User-Agent')?.substring(0, 100), // Limit user agent length
+    stack: config.nodeEnv === 'development' ? err.stack : undefined, // Only log stack in dev
+    userId: req.user?.id, // Include user ID if authenticated
   });
 
   // Mongoose validation error
@@ -183,8 +188,11 @@ export const globalErrorHandler = (
 
 // 404 handler for unmatched routes
 export const notFoundHandler = (req: Request, res: Response, next: NextFunction): void => {
+  // Sanitize URL to prevent XSS in error messages
+  const sanitizedUrl = req.originalUrl.substring(0, 100).replace(/[<>"']/g, '');
+  
   const error = new AppError(
-    `Route ${req.originalUrl} not found`,
+    `Route not found`,
     HTTP_STATUS.NOT_FOUND,
     ERROR_CODES.NOT_FOUND
   );
