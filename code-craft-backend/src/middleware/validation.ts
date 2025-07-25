@@ -33,10 +33,33 @@ export const validateRegistration = [
     .normalizeEmail()
     .withMessage('Must be a valid email address'),
   body('password')
-    .isLength({ min: 8 })
-    .withMessage('Password must be at least 8 characters long')
-    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/)
-    .withMessage('Password must contain at least one lowercase letter, one uppercase letter, and one number'),
+    .isLength({ min: 12 })
+    .withMessage('Password must be at least 12 characters long')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{}|;':",./<>?])/)
+    .withMessage('Password must contain at least one lowercase letter, one uppercase letter, one number, and one special character')
+    .custom((value) => {
+      // Additional password complexity checks
+      // Check for sequential characters (e.g., 123, abc)
+      const hasSequential = /(?:abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz|012|123|234|345|456|567|678|789)/i.test(value);
+      if (hasSequential) {
+        throw new Error('Password must not contain sequential characters');
+      }
+      
+      // Check for repeated characters (e.g., aaa, 111)
+      const hasRepeated = /(.)\1{2,}/.test(value);
+      if (hasRepeated) {
+        throw new Error('Password must not contain 3 or more repeated characters');
+      }
+      
+      // Check for common passwords patterns
+      const commonPatterns = ['password', 'qwerty', 'admin', 'letmein', 'welcome', 'monkey', 'dragon'];
+      const lowerValue = value.toLowerCase();
+      if (commonPatterns.some(pattern => lowerValue.includes(pattern))) {
+        throw new Error('Password is too common or predictable');
+      }
+      
+      return true;
+    }),
   body('name')
     .trim()
     .isLength({ min: 1, max: 100 })
@@ -56,6 +79,44 @@ export const validateLogin = [
 ];
 
 // User validation
+// Password change validation
+export const validatePasswordChange = [
+  body('currentPassword')
+    .notEmpty()
+    .withMessage('Current password is required'),
+  body('newPassword')
+    .isLength({ min: 12 })
+    .withMessage('New password must be at least 12 characters long')
+    .matches(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=\[\]{}|;':",./<>?])/)
+    .withMessage('New password must contain at least one lowercase letter, one uppercase letter, one number, and one special character')
+    .custom((value, { req }) => {
+      // Ensure new password is different from current password
+      if (value === req.body.currentPassword) {
+        throw new Error('New password must be different from current password');
+      }
+      
+      // Apply same complexity checks as registration
+      const hasSequential = /(?:abc|bcd|cde|def|efg|fgh|ghi|hij|ijk|jkl|klm|lmn|mno|nop|opq|pqr|qrs|rst|stu|tuv|uvw|vwx|wxy|xyz|012|123|234|345|456|567|678|789)/i.test(value);
+      if (hasSequential) {
+        throw new Error('Password must not contain sequential characters');
+      }
+      
+      const hasRepeated = /(.)\1{2,}/.test(value);
+      if (hasRepeated) {
+        throw new Error('Password must not contain 3 or more repeated characters');
+      }
+      
+      const commonPatterns = ['password', 'qwerty', 'admin', 'letmein', 'welcome', 'monkey', 'dragon'];
+      const lowerValue = value.toLowerCase();
+      if (commonPatterns.some(pattern => lowerValue.includes(pattern))) {
+        throw new Error('Password is too common or predictable');
+      }
+      
+      return true;
+    }),
+  handleValidationErrors,
+];
+
 export const validateUserUpdate = [
   body('name')
     .optional()
