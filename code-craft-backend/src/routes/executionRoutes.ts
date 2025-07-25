@@ -13,6 +13,7 @@ import {
   validatePagination,
 } from '../middleware/validation';
 import { codeExecutionLimiter, generalLimiter } from '../middleware/rateLimiting';
+import { verifyCsrfToken } from '../middleware/csrf';
 
 const router = Router();
 
@@ -24,6 +25,7 @@ router.use(generalLimiter);
 router.post(
   '/',
   optionalAuth,  // Changed from requireAuth to optionalAuth
+  verifyCsrfToken,
   codeExecutionLimiter,
   validateCodeExecution,
   executeCode
