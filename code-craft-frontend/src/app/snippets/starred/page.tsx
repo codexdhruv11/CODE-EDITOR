@@ -42,12 +42,12 @@ export default function StarredSnippetsPage() {
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (typeof window !== "undefined" && !isAuthenticated) {
+    if (!isAuthenticated) {
       router.push("/login");
     }
   }, [isAuthenticated, router]);
 
-  if (typeof window !== "undefined" && !isAuthenticated) {
+  if (!isAuthenticated) {
     return null;
   }
 

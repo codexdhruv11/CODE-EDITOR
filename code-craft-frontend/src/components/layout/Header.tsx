@@ -11,6 +11,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { useUIStore } from "@/stores/uiStore";
 import { useResponsive } from "@/hooks/useResponsive";
 import { SearchModal } from "@/components/search/SearchModal";
+import { ClientOnly } from "@/components/ui/client-only";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -62,22 +63,24 @@ export function Header() {
     <div className="flex h-16 items-center justify-between px-4 tablet:px-6">
       <div className="flex items-center">
         {/* Mobile/Tablet Menu Toggle */}
-        {mounted && (isMobile || isTablet) && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleSidebar}
-            aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
-            className="mr-2"
-          >
-            {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </Button>
-        )}
+        <ClientOnly>
+          {mounted && (isMobile || isTablet) && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleSidebar}
+              aria-label={isSidebarOpen ? "Close sidebar" : "Open sidebar"}
+              className="mr-2"
+            >
+              {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </Button>
+          )}
+        </ClientOnly>
         
         {/* Logo */}
         <Link href="/" className="flex items-center space-x-2">
           <Code className="h-6 w-6 text-primary" />
-          <span className="hidden font-bold tablet:inline-block">Code-Craft</span>
+          <span className="hidden font-bold tablet:inline-block">SnippetLab</span>
         </Link>
       </div>
       

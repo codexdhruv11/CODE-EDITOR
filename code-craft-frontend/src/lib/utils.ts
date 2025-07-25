@@ -120,9 +120,15 @@ export function debounce<T extends (...args: any[]) => any>(
 }
 
 /**
- * Generates a random ID
+ * Generates a random ID (client-side only to prevent hydration issues)
  */
 export function generateId(length: number = 8): string {
+  // During SSR, return a placeholder ID
+  if (typeof window === 'undefined') {
+    return `ssr-${length}-placeholder`;
+  }
+  
+  // On client, generate a proper random ID
   return Math.random()
     .toString(36)
     .substring(2, length + 2);

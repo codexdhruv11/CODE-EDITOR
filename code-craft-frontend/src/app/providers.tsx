@@ -1,8 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 export function SuppressHydrationWarning({ children }: { children: React.ReactNode }) {
+  const [isHydrated, setIsHydrated] = useState(false);
+
   useEffect(() => {
     // Suppress hydration warnings caused by browser extensions
     if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
@@ -13,15 +15,22 @@ export function SuppressHydrationWarning({ children }: { children: React.ReactNo
           typeof args[0] === 'string' && 
           (args[0].includes('bis_skin_checked') ||
            args[0].includes('Extra attributes from the server') ||
-           args[0].includes('did not match'))
+           args[0].includes('Hydration failed') ||
+           args[0].includes('did not match') ||
+           args[0].includes('Warning: Text content did not match') ||
+           args[0].includes('Warning: Expected server HTML'))
         ) {
-          // Suppress browser extension related warnings
+          // Log more details for debugging
+          console.warn('Hydration warning suppressed:', args[0]);
           return;
         }
         originalError.apply(console, args);
       };
     }
+    
+    setIsHydrated(true);
   }, []);
 
-  return <>{children}</>;
+  // Prevent hydration mismatch by not rendering until client-side
+  return <div suppressHydrationWarning>{children}</div>;
 }

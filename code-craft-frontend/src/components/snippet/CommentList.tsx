@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { useRelativeDate } from "@/lib/date-utils";
 import { User, Trash2, Edit } from "lucide-react";
 
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +14,7 @@ import { useAuthStore } from "@/stores/authStore";
 import { apiClient } from "@/lib/api";
 import { API_ENDPOINTS, API_LIMITS } from "@/lib/constants";
 import { motion, AnimatePresence } from "framer-motion";
+import { CommentItem } from './CommentItem';
 
 interface CommentListProps {
   snippetId: string;
@@ -24,6 +26,7 @@ export function CommentList({ snippetId }: CommentListProps) {
   const [editingContent, setEditingContent] = useState("");
   const { user, isAuthenticated } = useAuthStore();
   const queryClient = useQueryClient();
+  const router = useRouter();
 
   // Fetch comments
   const { data, isLoading } = useQuery({
@@ -140,7 +143,7 @@ export function CommentList({ snippetId }: CommentListProps) {
         ) : (
           <div className="text-center py-4">
             <p className="text-muted-foreground mb-2">Sign in to leave a comment</p>
-            <Button onClick={() => window.location.href = "/login"}>
+            <Button onClick={() => router.push("/login")}>
               Sign In
             </Button>
           </div>
@@ -164,67 +167,18 @@ export function CommentList({ snippetId }: CommentListProps) {
                   exit={{ opacity: 0 }}
                   className="border rounded-md p-4"
                 >
-                  <div className="flex justify-between items-start mb-2">
-                    <div className="flex items-center">
-                      <User className="h-4 w-4 mr-2" />
-                      <span className="font-medium">{comment.userName || comment.userId?.name}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {formatDistanceToNow(new Date(comment.createdAt), { addSuffix: true })}
-                    </span>
-                  </div>
-
-                  {editingCommentId === comment._id ? (
-                    <div className="space-y-2">
-                      <Textarea
-                        value={editingContent}
-                        onChange={(e) => setEditingContent(e.target.value)}
-                        maxLength={API_LIMITS.COMMENT_MAX_LENGTH}
-                        className="min-h-[80px]"
-                      />
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setEditingCommentId(null)}
-                        >
-                          Cancel
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => handleEditSave(comment._id)}
-                          disabled={updateComment.isPending}
-                        >
-                          Save
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <p>{comment.content}</p>
-                  )}
-
-                  {/* Comment actions for author */}
-                  {user?._id === (comment.userId?._id || comment.userId) && editingCommentId !== comment._id && (
-                    <div className="flex justify-end space-x-2 mt-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEditStart(comment._id, comment.content)}
-                      >
-                        <Edit className="h-3 w-3 mr-1" />
-                        Edit
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(comment._id)}
-                      >
-                        <Trash2 className="h-3 w-3 mr-1" />
-                        Delete
-                      </Button>
-                    </div>
-                  )}
+                  <CommentItem
+                    comment={comment}
+                    currentUserId={user?._id}
+                    isEditing={editingCommentId === comment._id}
+                    editingContent={editingContent}
+                    onEditStart={handleEditStart}
+                    onEditSave={handleEditSave}
+                    onEditCancel={() => setEditingCommentId(null)}
+                    onEditContentChange={setEditingContent}
+                    onDelete={handleDelete}
+                    isPending={updateComment.isPending}
+                  />
                 </motion.div>
               ))}
             </AnimatePresence>

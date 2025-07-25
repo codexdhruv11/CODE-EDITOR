@@ -1,4 +1,4 @@
-# Code-Craft Frontend
+# SnippetLab Frontend
 
 A modern, responsive code editor frontend built with Next.js 14, shadcn/ui, and Monaco Editor. This project provides a comprehensive web-based IDE experience with code execution, snippet sharing, and collaboration features.
 
@@ -33,8 +33,8 @@ A modern, responsive code editor frontend built with Next.js 14, shadcn/ui, and 
 
 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/code-craft.git
-cd code-craft/code-craft-frontend
+git clone https://github.com/yourusername/snippetlab.git
+cd snippetlab/snippetlab-frontend
 ```
 
 2. Install dependencies
@@ -86,7 +86,7 @@ All animations respect the user's motion preferences (prefers-reduced-motion).
 
 ## API Integration
 
-The frontend integrates with the Code-Craft backend API, which provides:
+The frontend integrates with the SnippetLab backend API, which provides:
 - Authentication (JWT)
 - Code execution for 10+ languages
 - Snippet CRUD operations

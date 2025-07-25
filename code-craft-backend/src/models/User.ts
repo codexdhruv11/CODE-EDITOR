@@ -99,11 +99,6 @@ userSchema.index({ createdAt: -1 });
 const LOCK_TIME = 2 * 60 * 60 * 1000; // 2 hours
 const MAX_LOGIN_ATTEMPTS = 5;
 
-// Virtual for checking if account is currently locked
-userSchema.virtual('isLocked').get(function() {
-  return !!(this.lockUntil && this.lockUntil > new Date());
-});
-
 // Password hashing middleware
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();

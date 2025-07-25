@@ -179,7 +179,7 @@ export const STORAGE_KEYS = {
   AUTH_TOKEN: 'token',
   THEME: 'theme',
   EDITOR_SETTINGS: 'editor-settings',
-  CODE_DRAFTS: 'code-craft-drafts',
+  CODE_DRAFTS: 'snippetlab-drafts',
 };
 
 /**
@@ -209,7 +209,7 @@ function greet(name) {
   return \`Hello, \${name}!\`;
 }
 
-console.log(greet('CodeCraft'));`,
+console.log(greet('SnippetLab'));`,
   
   typescript: `// TypeScript example
 interface Person {
@@ -221,7 +221,7 @@ function greet(person: Person): string {
   return \`Hello, \${person.name}! You are \${person.age} years old.\`;
 }
 
-const user: Person = { name: 'CodeCraft', age: 1 };
+const user: Person = { name: 'SnippetLab', age: 1 };
 console.log(greet(user));`,
   
   python: `# Python example
@@ -231,7 +231,7 @@ print("Hello, World!")
 def greet(name):
     return f"Hello, {name}!"
 
-print(greet("CodeCraft"))
+print(greet("SnippetLab"))
 
 # List comprehension example
 numbers = [x**2 for x in range(5)]
@@ -242,7 +242,7 @@ print(f"Squares: {numbers}")`,
         System.out.println("Hello, World!");
         
         // Method example
-        String greeting = greet("CodeCraft");
+        String greeting = greet("SnippetLab");
         System.out.println(greeting);
     }
     
@@ -258,7 +258,7 @@ class Program {
         Console.WriteLine("Hello, World!");
         
         // Method example
-        string greeting = Greet("CodeCraft");
+        string greeting = Greet("SnippetLab");
         Console.WriteLine(greeting);
     }
     
@@ -279,7 +279,7 @@ int main() {
     cout << "Hello, World!" << endl;
     
     // Function example
-    string greeting = greet("CodeCraft");
+    string greeting = greet("SnippetLab");
     cout << greeting << endl;
     
     return 0;
@@ -297,7 +297,7 @@ func main() {
     fmt.Println("Hello, World!")
     
     // Function example
-    greeting := greet("CodeCraft")
+    greeting := greet("SnippetLab")
     fmt.Println(greeting)
 }`,
   
@@ -309,7 +309,7 @@ def greet(name)
   "Hello, #{name}!"
 end
 
-puts greet("CodeCraft")
+puts greet("SnippetLab")
 
 # Array manipulation
 numbers = (1..5).map { |x| x ** 2 }
@@ -320,7 +320,7 @@ fn main() {
     println!("Hello, World!");
     
     // Function example
-    let greeting = greet("CodeCraft");
+    let greeting = greet("SnippetLab");
     println!("{}", greeting);
     
     // Vector example
@@ -342,7 +342,7 @@ func greet(_ name: String) -> String {
     return "Hello, \(name)!"
 }
 
-print(greet("CodeCraft"))
+print(greet("SnippetLab"))
 
 // Array manipulation
 let numbers = (1...5).map { $0 * $0 }

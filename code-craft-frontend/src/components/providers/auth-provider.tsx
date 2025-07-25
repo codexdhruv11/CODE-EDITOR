@@ -17,15 +17,22 @@ export function AuthProvider({ children }: AuthProviderProps) {
     
     // Initialize auth on app start
     const init = async () => {
-      // Rehydrate the store first
-      await useAuthStore.persist.rehydrate();
-      // Then initialize auth
-      await initializeAuth();
+      try {
+        // Rehydrate the store first
+        await useAuthStore.persist.rehydrate();
+        // Small delay to ensure hydration is complete
+        await new Promise(resolve => setTimeout(resolve, 100));
+        // Then initialize auth
+        await initializeAuth();
+      } catch (error) {
+        console.error('Auth initialization error:', error);
+      }
     };
     
     init();
   }, [initializeAuth]);
 
   // During SSR or before hydration, just render children
-  return <>{children}</>;
+  // This prevents hydration mismatches
+  return <div suppressHydrationWarning={!isHydrated}>{children}</div>;
 }

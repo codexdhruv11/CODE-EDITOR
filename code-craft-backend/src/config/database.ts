@@ -35,7 +35,7 @@ export const connectDatabase = async (): Promise<void> => {
       // Additional security options
       authSource: process.env.MONGODB_AUTH_SOURCE || 'admin',
       // Enable compression for better network efficiency
-      compressors: ['snappy', 'zlib'],
+      compressors: ['snappy', 'zlib'] as ('snappy' | 'zlib' | 'none' | 'zstd')[],
     };
     
     // Log security status

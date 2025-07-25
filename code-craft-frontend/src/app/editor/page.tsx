@@ -131,6 +131,9 @@ export default function EditorPage() {
 
   // Handle share functionality
   const handleShare = async () => {
+    // Only execute on client
+    if (typeof window === 'undefined') return;
+    
     const shareData = {
       title: `Code snippet in ${language}`,
       text: `Check out this ${language} code snippet`,

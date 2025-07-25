@@ -2,6 +2,12 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import Magic Bento styles */
+@import './magic-bento.css';
+
+/* Import TextType styles */
+@import '../components/ui/TextType.css';
+
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -68,6 +74,99 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 
+  /* Font classes for Cascadia Code */
+  .cascadia-code-light {
+    font-family: "Cascadia Code", var(--font-cascadia-code), monospace;
+    font-optical-sizing: auto;
+    font-weight: 300;
+    font-style: normal;
+  }
+
+  .cascadia-code-regular {
+    font-family: "Cascadia Code", var(--font-cascadia-code), monospace;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  .cascadia-code-medium {
+    font-family: "Cascadia Code", var(--font-cascadia-code), monospace;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
+  }
+
+  .cascadia-code-semibold {
+    font-family: "Cascadia Code", var(--font-cascadia-code), monospace;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-style: normal;
+  }
+
+  .cascadia-code-bold {
+    font-family: "Cascadia Code", var(--font-cascadia-code), monospace;
+    font-optical-sizing: auto;
+    font-weight: 700;
+    font-style: normal;
+  }
+
+  /* Font classes for Geist Mono */
+  .geist-mono-thin {
+    font-family: "Geist Mono", var(--font-geist-mono), monospace;
+    font-optical-sizing: auto;
+    font-weight: 100;
+    font-style: normal;
+  }
+
+  .geist-mono-light {
+    font-family: "Geist Mono", var(--font-geist-mono), monospace;
+    font-optical-sizing: auto;
+    font-weight: 300;
+    font-style: normal;
+  }
+
+  .geist-mono-regular {
+    font-family: "Geist Mono", var(--font-geist-mono), monospace;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+  }
+
+  .geist-mono-medium {
+    font-family: "Geist Mono", var(--font-geist-mono), monospace;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
+  }
+
+  .geist-mono-semibold {
+    font-family: "Geist Mono", var(--font-geist-mono), monospace;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-style: normal;
+  }
+
+  .geist-mono-bold {
+    font-family: "Geist Mono", var(--font-geist-mono), monospace;
+    font-optical-sizing: auto;
+    font-weight: 700;
+    font-style: normal;
+  }
+
+  .geist-mono-extrabold {
+    font-family: "Geist Mono", var(--font-geist-mono), monospace;
+    font-optical-sizing: auto;
+    font-weight: 800;
+    font-style: normal;
+  }
+
+  .geist-mono-black {
+    font-family: "Geist Mono", var(--font-geist-mono), monospace;
+    font-optical-sizing: auto;
+    font-weight: 900;
+    font-style: normal;
+  }
+
   /* Improved focus styles for keyboard navigation */
   :focus-visible {
     @apply outline-none ring-2 ring-primary ring-offset-2 ring-offset-background;
@@ -102,6 +201,22 @@
   /* Code editor specific styles */
   .monaco-editor {
     @apply rounded-md overflow-hidden;
+    font-family: 'Cascadia Code', 'Geist Mono', 'JetBrains Mono', monospace !important;
+  }
+
+  /* Apply new fonts to code elements */
+  code, pre, .code {
+    font-family: 'Cascadia Code', 'Geist Mono', monospace;
+  }
+
+  /* Apply Geist Mono to specific UI elements */
+  .font-mono, .geist-mono {
+    font-family: 'Geist Mono', monospace;
+  }
+
+  /* Apply Cascadia Code to code blocks */
+  .font-code, .cascadia-code {
+    font-family: 'Cascadia Code', monospace;
   }
 
   /* Save highlight animation */
@@ -115,6 +230,41 @@
     0% { opacity: 0.2; }
     50% { opacity: 0.3; }
     100% { opacity: 0.1; }
+  }
+
+  /* Magic Bento keyframes */
+  @keyframes magic-glow {
+    0%, 100% { 
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+                  0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    50% { 
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 
+                  0 4px 6px -2px rgba(0, 0, 0, 0.05),
+                  0 0 20px rgba(132, 0, 255, 0.4);
+    }
+  }
+
+  @keyframes magic-float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  @keyframes magic-pulse-scale {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+  }
+
+  .magic-glow-animation {
+    animation: magic-glow 3s ease-in-out infinite;
+  }
+
+  .magic-float-animation {
+    animation: magic-float 6s ease-in-out infinite;
+  }
+
+  .magic-pulse-animation {
+    animation: magic-pulse-scale 2s ease-in-out infinite;
   }
 
   /* Ensure proper contrast for code syntax highlighting in both themes */
@@ -151,11 +301,79 @@
 /* Component styles */
 @layer components {
   .card-hover {
-    @apply transition-all duration-300 hover:shadow-md;
+    @apply transition-all duration-300 hover:shadow-md hover:scale-[1.02] hover:-translate-y-1;
   }
 
   .responsive-grid {
     @apply grid grid-cols-1 tablet:grid-cols-2 desktop:grid-cols-3 gap-6;
+  }
+
+  /* Enhanced Magic Bento Grid Layouts */
+  .magic-bento-grid-auto {
+    @apply grid gap-6;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+
+  .magic-bento-masonry {
+    @apply columns-1 tablet:columns-2 desktop:columns-3 gap-6 space-y-6;
+  }
+
+  .magic-bento-masonry > * {
+    @apply break-inside-avoid mb-6;
+  }
+
+  /* Enhanced card animations */
+  .magic-card {
+    @apply rounded-xl border bg-card text-card-foreground shadow-sm;
+    @apply transition-all duration-300 ease-out;
+    @apply hover:shadow-lg hover:scale-[1.02] hover:-translate-y-1;
+    @apply active:scale-[0.98] active:translate-y-0;
+  }
+
+  .magic-card-glow {
+    @apply magic-card;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+                0 2px 4px -1px rgba(0, 0, 0, 0.06),
+                0 0 0 1px rgba(132, 0, 255, 0.1);
+  }
+
+  .magic-card-glow:hover {
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 
+                0 4px 6px -2px rgba(0, 0, 0, 0.05),
+                0 0 20px rgba(132, 0, 255, 0.3);
+  }
+
+  /* Interactive button enhancements */
+  .magic-button {
+    @apply inline-flex items-center justify-center rounded-lg font-medium;
+    @apply transition-all duration-200 ease-out;
+    @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+    @apply disabled:pointer-events-none disabled:opacity-50;
+    @apply hover:scale-[1.02] active:scale-[0.98];
+  }
+
+  /* Staggered animation containers */
+  .stagger-container > * {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: magic-fade-up 0.6s ease-out forwards;
+  }
+
+  .stagger-container > *:nth-child(1) { animation-delay: 0.1s; }
+  .stagger-container > *:nth-child(2) { animation-delay: 0.2s; }
+  .stagger-container > *:nth-child(3) { animation-delay: 0.3s; }
+  .stagger-container > *:nth-child(4) { animation-delay: 0.4s; }
+  .stagger-container > *:nth-child(5) { animation-delay: 0.5s; }
+  .stagger-container > *:nth-child(6) { animation-delay: 0.6s; }
+  .stagger-container > *:nth-child(7) { animation-delay: 0.7s; }
+  .stagger-container > *:nth-child(8) { animation-delay: 0.8s; }
+  .stagger-container > *:nth-child(9) { animation-delay: 0.9s; }
+
+  @keyframes magic-fade-up {
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
   }
 
   .mobile-bottom-nav {

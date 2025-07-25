@@ -2,11 +2,13 @@
 
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { motion } from 'framer-motion';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Search, Filter } from 'lucide-react';
 import { LazySnippetCard } from '@/components/lazy/LazySnippetCard';
+import { MagicBentoGrid, MagicBentoContainer } from '@/components/ui/magic-bento';
 import { snippetApi } from '@/lib/api';
 import { useResponsive } from '@/hooks/useResponsive';
 
@@ -31,11 +33,16 @@ export default function SnippetsPage() {
   };
 
   return (
-    <div className="container py-8">
+    <MagicBentoContainer className="container py-8">
       <div className="flex flex-col desktop:flex-row gap-6">
         {/* Filter sidebar - visible on desktop, collapsible on mobile/tablet */}
-        <div className={`${isMobile || isTablet ? 'hidden' : 'w-64'}`}>
-          <Card className="p-4 sticky top-20">
+        <motion.div 
+          className={`${isMobile || isTablet ? 'hidden' : 'w-64'}`}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.5 }}
+        >
+          <Card magic glow className="p-4 sticky top-20">
             <h2 className="text-xl font-semibold mb-4">Filters</h2>
             <div className="space-y-4">
               <div>
@@ -58,7 +65,7 @@ export default function SnippetsPage() {
               </div>
             </div>
           </Card>
-        </div>
+        </motion.div>
 
         {/* Main content */}
         <div className="flex-1">
@@ -101,24 +108,32 @@ export default function SnippetsPage() {
             </div>
           ) : (
             <>
-              <div className="responsive-grid">
-                {data?.data?.map((snippet) => (
-                  <LazySnippetCard key={snippet.id} snippet={snippet} />
+              <MagicBentoGrid 
+                columns={{ mobile: 1, tablet: 2, desktop: 3 }} 
+                stagger="normal"
+              >
+                {data?.data?.map((snippet, index) => (
+                  <LazySnippetCard key={snippet._id} snippet={snippet} />
                 ))}
-              </div>
+              </MagicBentoGrid>
 
               {/* Load more button */}
               {data?.pagination?.hasNext && (
-                <div className="mt-8 text-center">
-                  <Button onClick={handleLoadMore} disabled={isLoading}>
+                <motion.div 
+                  className="mt-8 text-center"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                >
+                  <Button magic onClick={handleLoadMore} disabled={isLoading}>
                     Load More
                   </Button>
-                </div>
+                </motion.div>
               )}
             </>
           )}
         </div>
       </div>
-    </div>
+    </MagicBentoContainer>
   );
-} 
+}

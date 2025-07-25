@@ -69,6 +69,13 @@ const config: Config = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      fontFamily: {
+        sans: ['var(--font-sans)', 'Inter', 'system-ui', 'sans-serif'],
+        mono: ['Geist Mono', 'Cascadia Code', 'var(--font-mono)', 'JetBrains Mono', 'monospace'],
+        code: ['Cascadia Code', 'Geist Mono', 'var(--font-mono)', 'monospace'],
+        cascadia: ['Cascadia Code', 'monospace'],
+        geist: ['Geist Mono', 'monospace'],
+      },
       fontSize: {
         // Based on the typography system in the design guide
         'heading-1-desktop': ['38px', { lineHeight: '1.5', fontWeight: '700' }],

@@ -4,22 +4,36 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
+import { motion } from "framer-motion";
 import { useAuthStore } from "@/stores/authStore";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { MagicBentoGrid, MagicBentoContainer } from "@/components/ui/magic-bento";
+import TextType from "@/components/ui/TextType";
 import { Snippet } from "@/types/api";
 import { apiClient } from "@/lib/api";
 import { API_ENDPOINTS } from "@/lib/constants";
 
 export default function Home() {
   const router = useRouter();
-  const { isAuthenticated, user, isLoading } = useAuthStore();
+  const { isAuthenticated, user, isLoading, isNewUser, clearNewUserFlag } = useAuthStore();
   const [isClient, setIsClient] = useState(false);
   
   // Set client flag on mount
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Clear new user flag after showing welcome message
+  useEffect(() => {
+    if (isClient && !isLoading && isNewUser && isAuthenticated) {
+      // Clear the flag after a short delay to ensure the user sees the welcome message
+      const timer = setTimeout(() => {
+        clearNewUserFlag();
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [isClient, isLoading, isNewUser, isAuthenticated, clearNewUserFlag]);
 
   // Fetch recent snippets
   const { data: recentSnippets } = useQuery({
@@ -61,50 +75,61 @@ export default function Home() {
       <main className="flex min-h-screen flex-col items-center justify-center p-4 tablet:p-8 desktop:p-24">
         <div className="z-10 w-full max-w-5xl items-center justify-between">
           <h1 className="mb-4 text-center text-heading-1-mobile tablet:text-heading-1-desktop">
-            Welcome to Code-Craft
+            <TextType
+              text="Welcome to SnippetLab"
+              typingSpeed={80}
+              initialDelay={500}
+              loop={false}
+              className="welcome-text-type"
+              cursorCharacter="|"
+              cursorBlinkDuration={0.8}
+            />
           </h1>
           
           <p className="mb-8 text-center text-body-large text-muted-foreground">
             A modern code editor with support for multiple languages
           </p>
           
-          <div className="grid grid-cols-1 gap-4 tablet:grid-cols-2 desktop:grid-cols-3">
-            <Card className="card-hover">
+          <MagicBentoGrid 
+            columns={{ mobile: 1, tablet: 2, desktop: 3 }} 
+            stagger="normal"
+          >
+            <Card magic hover glow delay={0.1}>
               <CardHeader>
                 <CardTitle>Code Editor</CardTitle>
                 <CardDescription>Write and execute code in 10+ languages</CardDescription>
               </CardHeader>
               <CardFooter>
-                <Button onClick={() => router.push("/login")} className="w-full">
+                <Button magic glow onClick={() => router.push("/login")} className="w-full">
                   Get Started
                 </Button>
               </CardFooter>
             </Card>
             
-            <Card className="card-hover">
+            <Card magic hover glow delay={0.2}>
               <CardHeader>
                 <CardTitle>Snippets</CardTitle>
                 <CardDescription>Browse and save code snippets</CardDescription>
               </CardHeader>
               <CardFooter>
-                <Button variant="outline" onClick={() => router.push("/login")} className="w-full">
+                <Button magic variant="outline" onClick={() => router.push("/login")} className="w-full">
                   Explore Snippets
                 </Button>
               </CardFooter>
             </Card>
             
-            <Card className="card-hover">
+            <Card magic hover glow delay={0.3}>
               <CardHeader>
                 <CardTitle>Community</CardTitle>
                 <CardDescription>Share and discover code with others</CardDescription>
               </CardHeader>
               <CardFooter>
-                <Button variant="outline" onClick={() => router.push("/register")} className="w-full">
+                <Button magic variant="outline" onClick={() => router.push("/register")} className="w-full">
                   Join Now
                 </Button>
               </CardFooter>
             </Card>
-          </div>
+          </MagicBentoGrid>
         </div>
       </main>
     );
@@ -116,17 +141,30 @@ export default function Home() {
       <div className="grid grid-cols-1 gap-6 desktop:grid-cols-3">
         <div className="desktop:col-span-2">
           <h1 className="mb-6 text-heading-1-mobile tablet:text-heading-1-desktop">
-            Welcome back, {user?.name?.split(' ')[0] || 'Coder'}
+            <TextType
+              text={`${isNewUser ? 'Welcome' : 'Welcome back'}, ${user?.name?.split(' ')[0] || 'Coder'}!`}
+              typingSpeed={60}
+              initialDelay={300}
+              loop={false}
+              className="welcome-text-type"
+              cursorCharacter="|"
+              cursorBlinkDuration={1}
+            />
           </h1>
           
-          <div className="mb-8 flex flex-wrap gap-4">
-            <Button size="lg" onClick={() => router.push("/editor")}>
+          <motion.div 
+            className="mb-8 flex flex-wrap gap-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+          >
+            <Button magic glow size="lg" onClick={() => router.push("/editor")}>
               New Snippet
             </Button>
-            <Button variant="outline" size="lg" onClick={() => router.push("/snippets")}>
+            <Button magic variant="outline" size="lg" onClick={() => router.push("/snippets")}>
               Browse Snippets
             </Button>
-          </div>
+          </motion.div>
           
           <div className="mb-8">
             <h2 className="mb-4 text-heading-3-mobile tablet:text-heading-3-desktop">
@@ -134,9 +172,9 @@ export default function Home() {
             </h2>
             
             {recentSnippets?.length ? (
-              <div className="responsive-grid">
-                {recentSnippets.map((snippet) => (
-                  <Card key={snippet._id} className="card-hover">
+              <MagicBentoGrid columns={{ mobile: 1, tablet: 2, desktop: 2 }} stagger="fast">
+                {recentSnippets.map((snippet, index) => (
+                  <Card key={snippet._id} magic hover glow delay={index * 0.1}>
                     <CardHeader>
                       <CardTitle className="line-clamp-1">{snippet.title}</CardTitle>
                       <CardDescription>
@@ -155,17 +193,17 @@ export default function Home() {
                     </CardFooter>
                   </Card>
                 ))}
-              </div>
+              </MagicBentoGrid>
             ) : (
               <Card>
                 <CardHeader>
                   <CardTitle>No snippets yet</CardTitle>
                   <CardDescription>
-                    Create your first snippet to get started
+                    Create your first code snippet to get started
                   </CardDescription>
                 </CardHeader>
                 <CardFooter>
-                  <Button onClick={() => router.push("/editor")} className="w-full">
+                  <Button onClick={() => router.push("/editor")}>
                     Create Snippet
                   </Button>
                 </CardFooter>
@@ -174,51 +212,53 @@ export default function Home() {
           </div>
         </div>
         
+        {/* Sidebar */}
         <div className="space-y-6">
-          <Card>
+          {/* Quick Stats */}
+          <Card magic hover>
             <CardHeader>
-              <CardTitle>Execution Statistics</CardTitle>
+              <CardTitle>Quick Stats</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-4">
-              {executionStats ? (
-                <>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Total Executions</span>
-                    <span className="font-medium">{executionStats.totalExecutions || 0}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Successful</span>
-                    <span className="font-medium text-success">{executionStats.successfulExecutions || 0}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Failed</span>
-                    <span className="font-medium text-destructive">{executionStats.failedExecutions || 0}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Avg. Execution Time</span>
-                    <span className="font-medium">{executionStats.averageExecutionTime?.toFixed(2) || 0} ms</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Most Used Language</span>
-                    <span className="font-medium">{executionStats.mostUsedLanguage || 'None'}</span>
-                  </div>
-                </>
-              ) : (
-                <p className="text-center text-muted-foreground">No executions yet</p>
-              )}
+            <CardContent className="space-y-2">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Total Snippets:</span>
+                <span className="font-medium">{recentSnippets?.length || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Executions:</span>
+                <span className="font-medium">{executionStats?.total || 0}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Success Rate:</span>
+                <span className="font-medium">
+                  {executionStats?.successRate ? `${executionStats.successRate}%` : 'N/A'}
+                </span>
+              </div>
             </CardContent>
           </Card>
           
-          <Card>
+          {/* Quick Actions */}
+          <Card magic hover>
             <CardHeader>
-              <CardTitle>Activity Feed</CardTitle>
+              <CardTitle>Quick Actions</CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-center text-muted-foreground">Coming soon</p>
+            <CardContent className="space-y-3">
+              <Button magic variant="outline" className="w-full justify-start" onClick={() => router.push("/editor")}>
+                Create New Snippet
+              </Button>
+              <Button magic variant="outline" className="w-full justify-start" onClick={() => router.push("/snippets")}>
+                Browse All Snippets
+              </Button>
+              <Button magic variant="outline" className="w-full justify-start" onClick={() => router.push("/snippets/starred")}>
+                View Starred
+              </Button>
+              <Button magic variant="outline" className="w-full justify-start" onClick={() => router.push("/executions")}>
+                Execution History
+              </Button>
             </CardContent>
           </Card>
         </div>
       </div>
     </main>
   );
-} 
+}

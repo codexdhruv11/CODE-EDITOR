@@ -4,8 +4,10 @@ import * as React from "react";
 import { Slot } from "@radix-ui/react-slot";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Loader2 } from "lucide-react";
+import { motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
+import { useReducedMotion } from "@/lib/animations";
 
 const buttonVariants = cva(
   "inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
@@ -47,18 +49,63 @@ export interface ButtonProps
   asChild?: boolean;
   isLoading?: boolean;
   loadingText?: string;
+  magic?: boolean;
+  glow?: boolean;
 }
 
 const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant, size, asChild = false, isLoading = false, loadingText, children, disabled, ...props }, ref) => {
+  ({ className, variant, size, asChild = false, isLoading = false, loadingText, children, disabled, magic = false, glow = false, ...props }, ref) => {
+    const prefersReducedMotion = useReducedMotion();
     const Comp = asChild ? Slot : "button";
     
     // Combine disabled prop with isLoading
     const isDisabled = disabled || isLoading;
     
+    if (magic && !asChild) {
+      return (
+        <motion.button
+          className={cn(
+            buttonVariants({ variant, size }),
+            glow && "magic-glow-animation",
+            className
+          )}
+          ref={ref}
+          disabled={isDisabled}
+          whileHover={
+            !prefersReducedMotion && !isDisabled
+              ? {
+                  scale: 1.02,
+                  transition: { duration: 0.2, type: "spring", stiffness: 400, damping: 25 },
+                }
+              : undefined
+          }
+          whileTap={
+            !prefersReducedMotion && !isDisabled
+              ? { scale: 0.98, transition: { duration: 0.1 } }
+              : undefined
+          }
+          {...props}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              {loadingText || children}
+            </>
+          ) : (
+            children
+          )}
+        </motion.button>
+      );
+    }
+    
     return (
       <Comp
-        className={cn(buttonVariants({ variant, size, className }))}
+        className={cn(
+          buttonVariants({ variant, size }),
+          magic && "magic-button",
+          glow && "magic-glow-animation",
+          className
+        )}
         ref={ref}
         disabled={isDisabled}
         {...props}

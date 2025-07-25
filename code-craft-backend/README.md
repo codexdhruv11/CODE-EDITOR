@@ -1,6 +1,6 @@
-# Code-Craft Backend
+# SnippetLab Backend
 
-A modern MERN stack backend for Code-Craft - A free code editor and snippet sharing platform.
+A modern MERN stack backend for SnippetLab - A free code editor and snippet sharing platform.
 
 ## 🚀 Features
 
@@ -93,7 +93,7 @@ src/
 1. **Clone the repository**
    ```bash
    git clone <repository-url>
-   cd code-craft-backend
+   cd snippetlab-backend
    ```
 
 2. **Install dependencies**
@@ -110,7 +110,7 @@ src/
    ```env
    PORT=3001
    NODE_ENV=development
-   MONGODB_URI=mongodb://localhost:27017/code-craft
+   MONGODB_URI=mongodb://localhost:27017/snippetlab
    CLERK_SECRET_KEY=your_clerk_secret_key
    CLERK_WEBHOOK_SECRET=your_clerk_webhook_secret
    CORS_ORIGIN=http://localhost:3000

@@ -6,6 +6,7 @@ import { HTTP_STATUS, ERROR_CODES } from '../utils/constants';
 import { parsePaginationParams, buildPaginationResponse } from '../utils/pagination';
 import { logger } from '../utils/logger';
 import { validateObjectId, sanitizePagination } from '../utils/sanitization';
+import mongoose from 'mongoose';
 
 /**
  * Code execution controller
@@ -55,6 +56,15 @@ export const executeCode = catchAsync(async (req: Request, res: Response, next: 
     // Only save execution result to database for authenticated users
     let executionId = null;
     if (!isGuest) {
+      logger.info('Saving code execution to database', {
+        userId: req.user!.id,
+        language,
+        codeLength: code.length,
+        hasOutput: !!executionResult.output,
+        hasError: !!executionResult.error,
+        executionTime: executionResult.executionTime,
+      });
+      
       const codeExecution = new CodeExecution({
         userId: req.user!.id,
         language,
@@ -66,6 +76,11 @@ export const executeCode = catchAsync(async (req: Request, res: Response, next: 
 
       await codeExecution.save();
       executionId = codeExecution._id;
+      
+      logger.info('Code execution saved successfully', {
+        executionId: executionId?.toString(),
+        userId: req.user!.id,
+      });
     }
 
     logger.info(`Code execution completed`, {
@@ -154,6 +169,14 @@ export const getUserExecutions = catchAsync(async (req: Request, res: Response, 
   }
 
   try {
+    logger.info('Fetching user executions', {
+      userId: req.user.id,
+      query,
+      page,
+      limit,
+      skip,
+    });
+    
     // Get executions with pagination
     const [executions, total] = await Promise.all([
       CodeExecution.find(query)
@@ -163,6 +186,13 @@ export const getUserExecutions = catchAsync(async (req: Request, res: Response, 
         .select('language code output error executionTime createdAt'),
       CodeExecution.countDocuments(query),
     ]);
+
+    logger.info('User executions fetched', {
+      userId: req.user.id,
+      executionsFound: executions.length,
+      total,
+      query,
+    });
 
     const response = buildPaginationResponse(executions, total, page, limit);
 
@@ -203,7 +233,7 @@ export const getExecutionStats = catchAsync(async (req: Request, res: Response, 
     // Use aggregation pipeline for better performance
     const [generalStats, languageBreakdown] = await Promise.all([
       CodeExecution.aggregate([
-        { $match: { userId: req.user.id } },
+        { $match: { userId: new mongoose.Types.ObjectId(req.user.id) } },
         {
           $group: {
             _id: null,
@@ -223,7 +253,7 @@ export const getExecutionStats = catchAsync(async (req: Request, res: Response, 
         }
       ]),
       CodeExecution.aggregate([
-        { $match: { userId: req.user.id } },
+        { $match: { userId: new mongoose.Types.ObjectId(req.user.id) } },
         {
           $group: {
             _id: '$language',

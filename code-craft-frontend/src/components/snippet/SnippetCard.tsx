@@ -4,7 +4,7 @@ import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { Star, MessageSquare, Calendar } from "lucide-react";
-import { formatDistanceToNow } from 'date-fns/formatDistanceToNow';
+import { useRelativeDate } from "@/lib/date-utils";
 
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -28,19 +28,24 @@ export function SnippetCard({ snippet, onClick, className }: SnippetCardProps) {
   const starCount = snippet.starCount || snippet.stars || 0;
   const userName = snippet.userName || (snippet.author ? snippet.author.name : "Unknown");
   
+  // Get hydration-safe relative date
+  const relativeDate = useRelativeDate(snippet.createdAt);
+  
   return (
     <motion.div variants={staggeredItem as any}>
       <Link href={`/snippets/${snippet._id}`} onClick={onClick}>
         <Card 
+          magic
           hover 
+          glow
           className={cn(
-            "h-full transition-all duration-300 hover:-translate-y-1",
+            "h-full group overflow-hidden",
             className
           )}
         >
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between">
-              <div className="rounded bg-primary/10 px-2 py-1 text-xs font-medium text-primary">
+              <div className="rounded-lg bg-primary/10 px-3 py-1.5 text-xs font-medium text-primary transition-all duration-200 group-hover:bg-primary/20 group-hover:scale-105">
                 {languageInfo.name}
               </div>
               <div className="flex items-center space-x-3 text-sm text-muted-foreground">
@@ -60,9 +65,11 @@ export function SnippetCard({ snippet, onClick, className }: SnippetCardProps) {
           </CardHeader>
           
           <CardContent className="pb-2">
-            <div className="h-[120px] overflow-hidden rounded bg-muted p-2">
-              <pre className="text-xs">
-                <code>{codePreview}</code>
+            <div className="h-[120px] overflow-hidden rounded-lg bg-muted p-3 transition-all duration-300 group-hover:bg-muted/80 group-hover:shadow-inner">
+              <pre className="text-xs leading-relaxed cascadia-code-regular">
+                <code className="text-muted-foreground group-hover:text-foreground transition-colors duration-300">
+                  {codePreview}
+                </code>
               </pre>
             </div>
           </CardContent>
@@ -73,7 +80,7 @@ export function SnippetCard({ snippet, onClick, className }: SnippetCardProps) {
             </div>
             <div className="flex items-center">
               <Calendar className="mr-1 h-3 w-3" />
-              <span>{formatDistanceToNow(new Date(snippet.createdAt), { addSuffix: true })}</span>
+              <span>{relativeDate}</span>
             </div>
           </CardFooter>
           

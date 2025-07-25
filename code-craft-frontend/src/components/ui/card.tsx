@@ -1,23 +1,72 @@
 import * as React from "react";
+import { motion } from "framer-motion";
 
 import { cn } from "@/lib/utils";
+import { useReducedMotion } from "@/lib/animations";
 
 const Card = React.forwardRef<
   HTMLDivElement,
   React.HTMLAttributes<HTMLDivElement> & { 
     hover?: boolean;
+    glow?: boolean;
+    magic?: boolean;
+    delay?: number;
   }
->(({ className, hover = false, ...props }, ref) => (
-  <div
-    ref={ref}
-    className={cn(
-      "rounded-lg border bg-card text-card-foreground shadow-sm",
-      hover && "transition-all duration-300 hover:shadow-md",
-      className
-    )}
-    {...props}
-  />
-));
+>(({ className, hover = false, glow = false, magic = false, delay = 0, ...props }, ref) => {
+  const prefersReducedMotion = useReducedMotion();
+
+  if (magic) {
+    return (
+      <motion.div
+        ref={ref}
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{
+          duration: prefersReducedMotion ? 0.1 : 0.3,
+          delay: prefersReducedMotion ? 0 : delay,
+          type: "spring",
+          stiffness: 300,
+          damping: 30,
+        }}
+        whileHover={
+          hover && !prefersReducedMotion
+            ? {
+                scale: 1.02,
+                y: -4,
+                transition: { duration: 0.2, type: "spring", stiffness: 400, damping: 25 },
+              }
+            : undefined
+        }
+        whileTap={
+          hover && !prefersReducedMotion
+            ? { scale: 0.98, transition: { duration: 0.1 } }
+            : undefined
+        }
+        className={cn(
+          "rounded-xl border bg-card text-card-foreground shadow-sm",
+          hover && "cursor-pointer transition-shadow duration-300",
+          glow && "magic-card-glow",
+          !glow && hover && "hover:shadow-lg",
+          className
+        )}
+        {...props}
+      />
+    );
+  }
+
+  return (
+    <div
+      ref={ref}
+      className={cn(
+        "rounded-lg border bg-card text-card-foreground shadow-sm",
+        hover && "card-hover",
+        glow && "magic-card-glow",
+        className
+      )}
+      {...props}
+    />
+  );
+});
 Card.displayName = "Card";
 
 const CardHeader = React.forwardRef<

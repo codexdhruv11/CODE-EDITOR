@@ -16,15 +16,17 @@ interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
+  isNewUser: boolean;
   
   // Actions
-  login: (token: string, user: User) => void;
+  login: (token: string, user: User, isNewUser?: boolean) => void;
   logout: () => void;
   checkAuth: () => Promise<boolean>;
   setUser: (user: User | null) => void;
   setError: (error: string | null) => void;
   setLoading: (isLoading: boolean) => void;
   updateUserData: (userData: Partial<User>) => void;
+  clearNewUserFlag: () => void;
   
   // New methods for complete auth flow
   loginWithCredentials: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
@@ -40,6 +42,7 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       isLoading: false, // Start with false to prevent infinite loading
       error: null,
+      isNewUser: false,
       
       setUser: (user) => set({ user, isAuthenticated: !!user }),
       setError: (error) => set({ error }),
@@ -48,7 +51,9 @@ export const useAuthStore = create<AuthState>()(
         user: state.user ? { ...state.user, ...userData } : null
       })),
       
-      login: (token, user) => {
+      clearNewUserFlag: () => set({ isNewUser: false }),
+      
+      login: (token, user, isNewUser = false) => {
         // Store token in localStorage
         if (typeof window !== 'undefined') {
           localStorage.setItem('token', token);
@@ -59,6 +64,7 @@ export const useAuthStore = create<AuthState>()(
           user,
           isAuthenticated: true,
           error: null,
+          isNewUser,
         });
       },
       
@@ -72,6 +78,7 @@ export const useAuthStore = create<AuthState>()(
           token: null,
           user: null,
           isAuthenticated: false,
+          isNewUser: false,
         });
       },
       
@@ -96,7 +103,7 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: true, error: null });
           const { token, user } = await authApi.login(email, password);
           
-          get().login(token, user);
+          get().login(token, user, false); // false for returning users
           set({ isLoading: false });
           return { success: true };
         } catch (error) {
@@ -120,7 +127,7 @@ export const useAuthStore = create<AuthState>()(
           set({ isLoading: true, error: null });
           const { token, user } = await authApi.register(name, email, password);
           
-          get().login(token, user);
+          get().login(token, user, true); // true for new users
           set({ isLoading: false });
           return { success: true };
         } catch (error) {
@@ -172,6 +179,17 @@ export const useAuthStore = create<AuthState>()(
         isAuthenticated: state.isAuthenticated,
       }),
       skipHydration: true,
+      // Prevent hydration mismatch by using a specific storage config
+      getStorage: () => {
+        if (typeof window === 'undefined') {
+          return {
+            getItem: () => null,
+            setItem: () => {},
+            removeItem: () => {},
+          };
+        }
+        return localStorage;
+      },
     }
   )
 ); 

@@ -1,0 +1,115 @@
+.text-type {
+  display: inline-block;
+  position: relative;
+}
+
+.text-type__content {
+  display: inline-block;
+  font-weight: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+}
+
+.text-type__cursor {
+  display: inline-block;
+  font-weight: inherit;
+  font-size: inherit;
+  line-height: inherit;
+  color: inherit;
+  margin-left: 2px;
+  animation: blink 1s infinite;
+}
+
+.text-type__cursor--hidden {
+  opacity: 0 !important;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+/* Custom styles for welcome text */
+.welcome-text-type {
+  font-family: var(--font-geist-mono), "Geist Mono", monospace;
+  font-weight: 700;
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary)) 40%, hsl(var(--accent-foreground)));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-size: 200% 200%;
+  animation: gradient-shift 3s ease-in-out infinite;
+}
+
+.welcome-text-type .text-type__cursor {
+  color: hsl(var(--primary));
+  font-weight: 700;
+  animation: cursor-pulse 1s infinite;
+}
+
+@keyframes gradient-shift {
+  0%, 100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
+@keyframes cursor-pulse {
+  0%, 50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  51%, 100% {
+    opacity: 0.3;
+    transform: scale(1.1);
+  }
+}
+
+/* Dark mode adjustments */
+.dark .welcome-text-type {
+  background: linear-gradient(135deg, hsl(var(--primary)), hsl(var(--primary)) 40%, hsl(var(--foreground)));
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Responsive font sizes */
+@media (max-width: 768px) {
+  .welcome-text-type {
+    font-size: 1.5rem;
+  }
+}
+
+@media (min-width: 769px) {
+  .welcome-text-type {
+    font-size: 2rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .welcome-text-type {
+    font-size: 2.5rem;
+  }
+}
+
+/* Accessibility: Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .text-type__cursor,
+  .welcome-text-type {
+    animation: none !important;
+  }
+  
+  .welcome-text-type {
+    background: hsl(var(--primary));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+}

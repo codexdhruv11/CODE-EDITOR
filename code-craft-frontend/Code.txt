@@ -1,0 +1,30 @@
+Embed code in the <head> of your html
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cascadia+Code:ital,wght@0,200..700;1,200..700&family=Geist+Mono:wght@100..900&display=swap" rel="stylesheet">
+
+
+ascadia Code: CSS class for a variable style
+
+// <weight>: Use a value from 200 to 700
+// <uniquifier>: Use a unique and descriptive class name
+
+.cascadia-code-<uniquifier> {
+  font-family: "Cascadia Code", sans-serif;
+  font-optical-sizing: auto;
+  font-weight: <weight>;
+  font-style: normal;
+}
+
+Geist Mono: CSS class for a variable style
+
+// <weight>: Use a value from 100 to 900
+// <uniquifier>: Use a unique and descriptive class name
+
+.geist-mono-<uniquifier> {
+  font-family: "Geist Mono", monospace;
+  font-optical-sizing: auto;
+  font-weight: <weight>;
+  font-style: normal;
+}
+

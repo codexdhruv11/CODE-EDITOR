@@ -14,8 +14,9 @@ export function ThemeProvider({ children }: ThemeProviderProps) {
       defaultTheme="system" 
       enableSystem
       disableTransitionOnChange
+      suppressHydrationWarning
     >
       {children}
     </NextThemesProvider>
   );
-} 
+}

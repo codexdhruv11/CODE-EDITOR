@@ -45,8 +45,9 @@ const validateRequiredEnvVars = (): void => {
   }
   
   // Additional validation for JWT secret complexity
-  if (!/^[A-Za-z0-9+/=]{32,}$/.test(jwtSecret)) {
-    throw new Error('JWT_SECRET must contain only alphanumeric characters and +/= symbols');
+  // Allow any printable ASCII characters for flexibility while maintaining security
+  if (!/^[\x20-\x7E]{32,}$/.test(jwtSecret)) {
+    throw new Error('JWT_SECRET must contain only printable ASCII characters and be at least 32 characters long');
   }
   
   // Warn if JWT secret is not optimal length (64 chars = 512 bits)

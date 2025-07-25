@@ -20,3 +20,18 @@ export function ClientOnly({ children, fallback = null }: ClientOnlyProps) {
 
   return <>{children}</>;
 }
+
+// Enhanced version with suppressHydrationWarning
+export function ClientOnlyWithSuppression({ children, fallback = null }: ClientOnlyProps) {
+  const [hasMounted, setHasMounted] = useState(false);
+
+  useEffect(() => {
+    setHasMounted(true);
+  }, []);
+
+  return (
+    <div suppressHydrationWarning>
+      {hasMounted ? children : fallback}
+    </div>
+  );
+}

@@ -9,7 +9,13 @@ import { useEditorStore } from "@/stores/editorStore";
 import { CodeEditorProps } from "@/types/ui";
 
 // Configure Monaco loader with optimizations
-if (typeof window !== 'undefined') {
+let monacoInitialized = false;
+
+function initializeMonaco() {
+  if (monacoInitialized || typeof window === 'undefined') return;
+  
+  monacoInitialized = true;
+  
   // Preload Monaco Editor resources
   const link = document.createElement('link');
   link.rel = 'preconnect';
@@ -133,8 +139,9 @@ export function CodeEditorContainer({
     }
   };
 
-  // Set mounted state on mount
+  // Set mounted state on mount and initialize Monaco
   useEffect(() => {
+    initializeMonaco();
     setMounted(true);
   }, []);
 

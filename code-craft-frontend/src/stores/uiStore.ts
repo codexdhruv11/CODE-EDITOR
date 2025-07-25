@@ -49,6 +49,18 @@ export const useUIStore = create<UIState>()(
       partialize: (state) => ({
         reducedMotion: state.reducedMotion,
       }),
+      skipHydration: true,
+      // Prevent hydration mismatch by using a specific storage config
+      getStorage: () => {
+        if (typeof window === 'undefined') {
+          return {
+            getItem: () => null,
+            setItem: () => {},
+            removeItem: () => {},
+          };
+        }
+        return localStorage;
+      },
     }
   )
 ); 

@@ -62,10 +62,7 @@ const userSnippetsQuery = useQuery({
   queryKey: ["userSnippets", user?.id || user?._id],
   queryFn: async () => {
     const userId = user?.id || user?._id;
-    console.log('Fetching user snippets for userId:', userId);
-    console.log('Current user object:', user);
     const response = await apiClient.get(`${API_ENDPOINTS.SNIPPETS.BASE}?limit=3&userId=${userId}`);
-    console.log('User snippets response:', response.data);
     return response.data;
   },
   enabled: isAuthenticated && !!(user?.id || user?._id),
@@ -131,12 +128,12 @@ const userSnippetsQuery = useQuery({
 
   // Redirect if not authenticated
   useEffect(() => {
-    if (typeof window !== "undefined" && !isAuthenticated) {
+    if (!isAuthenticated) {
       router.push("/login");
     }
   }, [isAuthenticated, router]);
 
-  if (typeof window !== "undefined" && !isAuthenticated) {
+  if (!isAuthenticated) {
     return null;
   }
 
@@ -316,9 +313,9 @@ const userSnippetsQuery = useQuery({
             </Button>
           </CardHeader>
           <CardContent>
-            {userSnippets?.snippets?.length ? (
+            {userSnippets?.data?.length ? (
               <div className="responsive-grid">
-                {userSnippets.snippets.map((snippet) => (
+                {userSnippets.data.map((snippet) => (
                   <SnippetCard key={snippet._id} snippet={snippet} />
                 ))}
               </div>
@@ -346,9 +343,9 @@ const userSnippetsQuery = useQuery({
             </Button>
           </CardHeader>
           <CardContent>
-            {starredSnippets?.snippets?.length ? (
+            {starredSnippets?.data?.length ? (
               <div className="responsive-grid">
-                {starredSnippets.snippets.map((snippet) => (
+                {starredSnippets.data.map((snippet) => (
                   <SnippetCard key={snippet._id} snippet={snippet} />
                 ))}
               </div>
