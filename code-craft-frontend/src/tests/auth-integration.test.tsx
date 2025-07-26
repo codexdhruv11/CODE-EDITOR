@@ -29,6 +29,7 @@ jest.mock('@/lib/api', () => ({
   },
 }));
 
+// eslint-disable-next-line @typescript-eslint/no-var-requires
 const { authApi } = require('@/lib/api');
 
 // Test wrapper component

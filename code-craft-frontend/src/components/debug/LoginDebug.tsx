@@ -23,7 +23,8 @@ export function LoginDebug() {
       const data = await response.json();
       setResult({ type: 'connection', success: true, data });
     } catch (error) {
-      setResult({ type: 'connection', success: false, error: error.message });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setResult({ type: 'connection', success: false, error: errorMessage });
     }
     
     setLoading(false);
@@ -38,7 +39,8 @@ export function LoginDebug() {
       setResult({ type: 'login', success: true, data: response });
     } catch (error) {
       console.error('Login test error:', error);
-      setResult({ type: 'login', success: false, error: error.message, fullError: error });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setResult({ type: 'login', success: false, error: errorMessage, fullError: error });
     }
     
     setLoading(false);
@@ -53,7 +55,8 @@ export function LoginDebug() {
       setResult({ type: 'register', success: true, data: response });
     } catch (error) {
       console.error('Register test error:', error);
-      setResult({ type: 'register', success: false, error: error.message, fullError: error });
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+      setResult({ type: 'register', success: false, error: errorMessage, fullError: error });
     }
     
     setLoading(false);

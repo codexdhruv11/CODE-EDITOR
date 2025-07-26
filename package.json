@@ -1,0 +1,13 @@
+{
+  "name": "code-editor",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install": "cd code-craft-frontend && npm install",
+    "build": "cd code-craft-frontend && npm run build",
+    "start": "cd code-craft-frontend && npm start"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -62,6 +62,16 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     const isDisabled = disabled || isLoading;
     
     if (magic && !asChild) {
+      // Extract event handlers that might conflict with Framer Motion
+      const {
+        onAnimationStart,
+        onAnimationEnd,
+        onDragStart,
+        onDragEnd,
+        onDrag,
+        ...motionSafeProps
+      } = props;
+      
       return (
         <motion.button
           className={cn(
@@ -84,7 +94,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
               ? { scale: 0.98, transition: { duration: 0.1 } }
               : undefined
           }
-          {...props}
+          {...motionSafeProps}
         >
           {isLoading ? (
             <>

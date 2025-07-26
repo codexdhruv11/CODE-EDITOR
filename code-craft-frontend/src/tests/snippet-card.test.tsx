@@ -19,6 +19,7 @@ jest.mock('next/navigation', () => ({
 
 // Mock next/link
 jest.mock('next/link', () => {
+  // eslint-disable-next-line react/display-name
   return ({ children, href }: { children: React.ReactNode; href: string }) => (
     <a href={href} data-testid="link">
       {children}
@@ -36,6 +37,7 @@ jest.mock('framer-motion', () => ({
 }));
 
 // Add mock for jest-dom matchers
+// eslint-disable-next-line @typescript-eslint/no-namespace
 declare global {
   namespace jest {
     interface Matchers<R> {

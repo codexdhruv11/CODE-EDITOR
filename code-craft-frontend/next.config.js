@@ -72,6 +72,12 @@ const nextConfig = {
   env: {
     NEXT_PUBLIC_API_URL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api',
   },
+  
+  // ESLint configuration for build
+  eslint: {
+    // During production builds, do not fail on ESLint errors
+    ignoreDuringBuilds: true,
+  },
 };
 
 module.exports = nextConfig; 

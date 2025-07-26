@@ -32,7 +32,7 @@ export function CommentList({ snippetId }: CommentListProps) {
   const { data, isLoading } = useQuery({
     queryKey: ["comments", snippetId],
     queryFn: async () => {
-      const response = await apiClient.get(API_ENDPOINTS.COMMENTS.LIST(snippetId));
+      const response = await apiClient.get(API_ENDPOINTS.COMMENTS.FOR_SNIPPET(snippetId));
       return response.data;
     },
   });
@@ -40,7 +40,7 @@ export function CommentList({ snippetId }: CommentListProps) {
   // Add comment mutation
   const addComment = useMutation({
     mutationFn: async (content: string) => {
-      return await apiClient.post(API_ENDPOINTS.COMMENTS.LIST(snippetId), { content });
+      return await apiClient.post(API_ENDPOINTS.COMMENTS.FOR_SNIPPET(snippetId), { content });
     },
     onSuccess: () => {
       setComment("");
@@ -55,7 +55,7 @@ export function CommentList({ snippetId }: CommentListProps) {
   // Update comment mutation
   const updateComment = useMutation({
     mutationFn: async ({ commentId, content }: { commentId: string; content: string }) => {
-      return await apiClient.patch(API_ENDPOINTS.COMMENTS.DETAIL(commentId), { content });
+      return await apiClient.patch(API_ENDPOINTS.COMMENTS.SINGLE(commentId), { content });
     },
     onSuccess: () => {
       setEditingCommentId(null);
@@ -70,7 +70,7 @@ export function CommentList({ snippetId }: CommentListProps) {
   // Delete comment mutation
   const deleteComment = useMutation({
     mutationFn: async (commentId: string) => {
-      return await apiClient.delete(API_ENDPOINTS.COMMENTS.DETAIL(commentId));
+      return await apiClient.delete(API_ENDPOINTS.COMMENTS.SINGLE(commentId));
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["comments", snippetId] });

@@ -45,7 +45,7 @@ export default function ProfilePage() {
     },
     enabled: isAuthenticated,
     staleTime: 5 * 60 * 1000, // 5 minutes
-    cacheTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
   });
   
   const executionStatsQuery = useQuery({
@@ -59,13 +59,13 @@ export default function ProfilePage() {
   });
   
 const userSnippetsQuery = useQuery({
-  queryKey: ["userSnippets", user?.id || user?._id],
+  queryKey: ["userSnippets", user?._id],
   queryFn: async () => {
-    const userId = user?.id || user?._id;
+    const userId = user?._id;
     const response = await apiClient.get(`${API_ENDPOINTS.SNIPPETS.BASE}?limit=3&userId=${userId}`);
     return response.data;
   },
-  enabled: isAuthenticated && !!(user?.id || user?._id),
+  enabled: isAuthenticated && !!user?._id,
   staleTime: 1 * 60 * 1000, // 1 minute
 });
   
@@ -315,7 +315,7 @@ const userSnippetsQuery = useQuery({
           <CardContent>
             {userSnippets?.data?.length ? (
               <div className="responsive-grid">
-                {userSnippets.data.map((snippet) => (
+                {userSnippets.data.map((snippet: any) => (
                   <SnippetCard key={snippet._id} snippet={snippet} />
                 ))}
               </div>
@@ -345,7 +345,7 @@ const userSnippetsQuery = useQuery({
           <CardContent>
             {starredSnippets?.data?.length ? (
               <div className="responsive-grid">
-                {starredSnippets.data.map((snippet) => (
+                {starredSnippets.data.map((snippet: any) => (
                   <SnippetCard key={snippet._id} snippet={snippet} />
                 ))}
               </div>

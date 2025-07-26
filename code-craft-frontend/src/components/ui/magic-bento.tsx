@@ -65,8 +65,8 @@ export function MagicBentoCard({
   onClick,
   href,
 }: MagicBentoCardProps) {
-  const ref = useRef<HTMLDivElement>(null);
-  const isInView = useInView(ref, { once: true, margin: "-10%" });
+  const ref = useRef<HTMLDivElement | HTMLAnchorElement>(null);
+  const isInView = useInView(ref as React.RefObject<HTMLElement>, { once: true, margin: "-10%" });
   const prefersReducedMotion = useReducedMotion();
   const controls = useAnimation();
 
@@ -121,7 +121,7 @@ export function MagicBentoCard({
 
   return (
     <Component
-      ref={ref}
+      ref={ref as any}
       className={cn(
         "rounded-xl border bg-card text-card-foreground overflow-hidden",
         "transition-all duration-300 cursor-pointer",

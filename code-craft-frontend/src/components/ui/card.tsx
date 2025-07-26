@@ -16,6 +16,16 @@ const Card = React.forwardRef<
   const prefersReducedMotion = useReducedMotion();
 
   if (magic) {
+    // Extract event handlers that might conflict with Framer Motion
+    const {
+      onAnimationStart,
+      onAnimationEnd,
+      onDragStart,
+      onDragEnd,
+      onDrag,
+      ...motionSafeProps
+    } = props;
+
     return (
       <motion.div
         ref={ref}
@@ -49,7 +59,7 @@ const Card = React.forwardRef<
           !glow && hover && "hover:shadow-lg",
           className
         )}
-        {...props}
+        {...motionSafeProps}
       />
     );
   }

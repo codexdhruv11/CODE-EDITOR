@@ -339,12 +339,12 @@ print("Hello, World!")
 
 // Function example
 func greet(_ name: String) -> String {
-    return "Hello, \(name)!"
+    return "Hello, \\(name)!"
 }
 
 print(greet("SnippetLab"))
 
 // Array manipulation
 let numbers = (1...5).map { $0 * $0 }
-print("Squares: \(numbers)")`,
+print("Squares: \\(numbers)")`
 };

@@ -15,18 +15,17 @@ import { SUPPORTED_LANGUAGES } from "@/lib/constants";
 import { StarButton } from './StarButton';
 
 export function SnippetCard({ snippet, onClick, className }: SnippetCardProps) {
-  // Find language info - handle both programmingLanguage and language properties
-  const language = snippet.programmingLanguage || snippet.language;
-  const languageInfo = SUPPORTED_LANGUAGES.find(lang => lang.id === language) || 
+  // Find language info
+  const languageInfo = SUPPORTED_LANGUAGES.find(lang => lang.id === snippet.language) || 
     SUPPORTED_LANGUAGES[0];
   
   // Format code preview (truncate if needed)
   const codePreview = truncateText(snippet.code, 200);
   
-  // Handle both property naming conventions
-  const commentCount = snippet.commentCount || snippet.comments || 0;
-  const starCount = snippet.starCount || snippet.stars || 0;
-  const userName = snippet.userName || (snippet.author ? snippet.author.name : "Unknown");
+  // Use snippet properties
+  const commentCount = snippet.comments || 0;
+  const starCount = snippet.stars || 0;
+  const userName = snippet.author ? snippet.author.name : "Unknown";
   
   // Get hydration-safe relative date
   const relativeDate = useRelativeDate(snippet.createdAt);

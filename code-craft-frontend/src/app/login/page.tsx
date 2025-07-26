@@ -8,7 +8,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/authStore";
-import { authApi } from "@/lib/api";
+// import { authApi } from '@/lib/api';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -122,7 +122,7 @@ export default function LoginPage() {
         
         <CardFooter className="flex justify-center">
           <p className="text-sm text-muted-foreground">
-            Don't have an account?{" "}
+            Don&apos;t have an account?{" "}
             <Link href="/register" className="font-medium text-primary hover:underline">
               Sign up
             </Link>

@@ -165,7 +165,7 @@ export function SearchModal({ isOpen, onClose }: SearchModalProps) {
                 onClose();
               }}
             >
-              View all results for "{searchQuery}"
+              View all results for &quot;{searchQuery}&quot;
             </Button>
           </div>
         )}
