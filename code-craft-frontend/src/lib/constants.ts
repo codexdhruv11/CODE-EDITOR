@@ -16,8 +16,8 @@ export const API_ENDPOINTS = {
     ME: '/auth/me',
     PROFILE: '/auth/profile',
     REFRESH: '/auth/refresh',
-    CSRF_TOKEN: '/auth/csrf-token',
   },
+  CSRF_TOKEN: '/csrf-token',
   USERS: {
     ME: '/users/me',
     UPDATE: '/users/me',
