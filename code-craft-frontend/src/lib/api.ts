@@ -111,10 +111,24 @@ export const apiClient: AxiosInstance = new Proxy({} as AxiosInstance, {
 });
 
 /**
+ * Fetch CSRF token from the server
+ */
+const fetchCsrfToken = async (): Promise<void> => {
+  try {
+    await apiClient.get(API_ENDPOINTS.CSRF_TOKEN);
+    // The server will set the csrf-token cookie
+  } catch (error) {
+    console.error('Failed to fetch CSRF token:', error);
+  }
+};
+
+/**
  * Auth API functions
  */
 export const authApi = {
   login: async (email: string, password: string) => {
+    // Ensure CSRF token is fetched before login
+    await fetchCsrfToken();
     const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, { email, password });
     const { token, user } = response.data;
     // Store token in localStorage for tests
@@ -125,6 +139,8 @@ export const authApi = {
   },
   
   register: async (name: string, email: string, password: string) => {
+    // Ensure CSRF token is fetched before registration
+    await fetchCsrfToken();
     const response = await apiClient.post(API_ENDPOINTS.AUTH.REGISTER, { name, email, password });
     const { token, user } = response.data;
     // Store token in localStorage for tests
