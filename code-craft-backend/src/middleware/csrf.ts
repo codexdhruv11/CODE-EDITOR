@@ -34,18 +34,36 @@ export const verifyCsrfToken = (req: Request, res: Response, next: NextFunction)
   const tokenFromCookie = req.cookies['csrf-token'];
   const tokenFromHeader = req.headers['x-csrf-token'] as string;
   
+  // Enhanced logging for debugging
+  logger.debug('CSRF verification attempt', {
+    method: req.method,
+    path: req.path,
+    hasCookie: !!tokenFromCookie,
+    hasHeader: !!tokenFromHeader,
+    cookieLength: tokenFromCookie?.length || 0,
+    headerLength: tokenFromHeader?.length || 0,
+    allCookies: Object.keys(req.cookies || {}),
+    allHeaders: Object.keys(req.headers || {}),
+  });
+  
   if (!tokenFromCookie || !tokenFromHeader) {
     logger.warn('CSRF token missing', { 
       method: req.method, 
       path: req.path,
       hasCookie: !!tokenFromCookie,
-      hasHeader: !!tokenFromHeader
+      hasHeader: !!tokenFromHeader,
+      cookieValue: tokenFromCookie ? '[REDACTED]' : 'undefined',
+      headerValue: tokenFromHeader ? '[REDACTED]' : 'undefined',
     });
     
     res.status(HTTP_STATUS.FORBIDDEN).json({
       error: {
         message: 'CSRF token missing',
         code: ERROR_CODES.FORBIDDEN,
+        details: {
+          hasCookie: !!tokenFromCookie,
+          hasHeader: !!tokenFromHeader,
+        }
       },
     });
     return;

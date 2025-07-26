@@ -10,13 +10,19 @@ import { API_BASE_URL, API_ENDPOINTS, ERROR_CODES, STORAGE_KEYS } from './consta
 const getCsrfTokenFromCookie = (): string | null => {
   if (typeof document === 'undefined') return null;
   
+  // Debug: log all cookies
+  console.log('All cookies:', document.cookie);
+  
   const cookies = document.cookie.split(';');
   for (const cookie of cookies) {
     const [name, value] = cookie.trim().split('=');
     if (name === 'csrf-token') {
-      return decodeURIComponent(value);
+      const token = decodeURIComponent(value);
+      console.log('Found CSRF token:', token);
+      return token;
     }
   }
+  console.warn('CSRF token not found in cookies');
   return null;
 };
 
@@ -42,7 +48,7 @@ const createApiClient = (): AxiosInstance => {
       if (!['GET', 'HEAD', 'OPTIONS'].includes(config.method?.toUpperCase() || '')) {
         const csrfToken = getCsrfTokenFromCookie();
         if (csrfToken) {
-          config.headers['X-CSRF-Token'] = csrfToken;
+          config.headers['x-csrf-token'] = csrfToken;
         }
       }
       

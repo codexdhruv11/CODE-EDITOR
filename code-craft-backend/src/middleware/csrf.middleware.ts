@@ -18,8 +18,9 @@ export const setCsrfToken = (req: CsrfRequest, res: Response, next: NextFunction
     res.cookie('csrf-token', token, {
       httpOnly: false, // Must be false so frontend can read it
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', // 'none' for cross-origin in production
       maxAge: 60 * 60 * 1000, // 1 hour
+      domain: process.env.NODE_ENV === 'production' ? undefined : 'localhost', // Let browser handle domain in production
     });
     req.csrfToken = token;
   } else {

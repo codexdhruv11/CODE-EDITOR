@@ -77,13 +77,19 @@ export const clearAuthCookie = (res: Response): void => {
  * Set CSRF token cookie (readable by JavaScript for inclusion in headers)
  */
 export const setCsrfCookie = (res: Response, csrfToken: string): void => {
-  const options = getCookieOptions();
-  // Allow JavaScript access for CSRF token to include in requests
-  res.cookie('csrf-token', csrfToken, { 
-    ...options, 
-    httpOnly: false,
-    sameSite: config.nodeEnv === 'production' ? 'none' : 'lax', // 'none' for cross-origin requests
-    secure: config.nodeEnv === 'production', // Required when sameSite is 'none'
-    domain: config.cookieDomain || undefined // Set domain for subdomain sharing
-  });
+  // CSRF cookie must be readable by JavaScript
+  const csrfOptions: CookieOptions = {
+    httpOnly: false, // Must be false so frontend JavaScript can read it
+    secure: config.nodeEnv === 'production', // HTTPS only in production
+    sameSite: config.nodeEnv === 'production' ? 'none' : 'lax', // 'none' for cross-origin in production
+    maxAge: 60 * 60 * 1000, // 1 hour
+    path: '/',
+  };
+  
+  // For production cross-origin requests, don't set domain to allow browser to handle it
+  if (config.nodeEnv !== 'production' && config.cookieDomain) {
+    csrfOptions.domain = config.cookieDomain;
+  }
+  
+  res.cookie('csrf-token', csrfToken, csrfOptions);
 };
