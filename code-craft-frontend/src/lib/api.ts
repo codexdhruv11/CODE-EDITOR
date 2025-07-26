@@ -4,26 +4,35 @@ import axios, { AxiosInstance } from 'axios';
 import { toast } from 'sonner';
 import { API_BASE_URL, API_ENDPOINTS, ERROR_CODES, STORAGE_KEYS } from './constants';
 
+// Store CSRF token in memory
+let csrfToken: string | null = null;
+
 /**
- * Get CSRF token from cookie
+ * Clear CSRF token from memory
  */
-const getCsrfTokenFromCookie = (): string | null => {
-  if (typeof document === 'undefined') return null;
-  
-  // Debug: log all cookies
-  console.log('All cookies:', document.cookie);
-  
-  const cookies = document.cookie.split(';');
-  for (const cookie of cookies) {
-    const [name, value] = cookie.trim().split('=');
-    if (name === 'csrf-token') {
-      const token = decodeURIComponent(value);
-      console.log('Found CSRF token:', token);
-      return token;
-    }
+const clearCsrfToken = () => {
+  csrfToken = null;
+};
+
+/**
+ * Get CSRF token from memory or fetch it
+ */
+const getCsrfToken = async (): Promise<string | null> => {
+  if (csrfToken) {
+    return csrfToken;
   }
-  console.warn('CSRF token not found in cookies');
-  return null;
+  
+  try {
+    const response = await axios.get(`${API_BASE_URL}${API_ENDPOINTS.CSRF_TOKEN}`, {
+      withCredentials: true,
+    });
+    csrfToken = response.data.csrfToken;
+    console.log('CSRF token fetched and stored');
+    return csrfToken;
+  } catch (error) {
+    console.error('Failed to fetch CSRF token:', error);
+    return null;
+  }
 };
 
 /**
@@ -41,14 +50,20 @@ const createApiClient = (): AxiosInstance => {
 
   // Request interceptor for logging and CSRF token
   api.interceptors.request.use(
-    (config) => {
+    async (config) => {
       console.log('API Request:', config.method?.toUpperCase(), config.url);
       
-      // Add CSRF token from cookie to headers for state-changing requests
+      // Add CSRF token to headers for state-changing requests
       if (!['GET', 'HEAD', 'OPTIONS'].includes(config.method?.toUpperCase() || '')) {
-        const csrfToken = getCsrfTokenFromCookie();
-        if (csrfToken) {
-          config.headers['x-csrf-token'] = csrfToken;
+        // Skip CSRF for the CSRF token endpoint itself
+        if (!config.url?.includes('/csrf-token')) {
+          const token = await getCsrfToken();
+          if (token) {
+            config.headers['x-csrf-token'] = token;
+            console.log('CSRF token added to request headers');
+          } else {
+            console.warn('No CSRF token available for request');
+          }
         }
       }
       
@@ -88,6 +103,12 @@ const createApiClient = (): AxiosInstance => {
           }
         }
         
+        // CSRF errors - clear token and retry might be needed
+        if (error.response.status === 403 && error.response.data?.error?.message?.includes('CSRF')) {
+          clearCsrfToken();
+          console.warn('CSRF token error, cleared token for retry');
+        }
+        
         // Server errors
         if (error.response.status >= 500) {
           toast.error('Server error. Please try again later.');
@@ -117,24 +138,10 @@ export const apiClient: AxiosInstance = new Proxy({} as AxiosInstance, {
 });
 
 /**
- * Fetch CSRF token from the server
- */
-const fetchCsrfToken = async (): Promise<void> => {
-  try {
-    await apiClient.get(API_ENDPOINTS.CSRF_TOKEN);
-    // The server will set the csrf-token cookie
-  } catch (error) {
-    console.error('Failed to fetch CSRF token:', error);
-  }
-};
-
-/**
  * Auth API functions
  */
 export const authApi = {
   login: async (email: string, password: string) => {
-    // Ensure CSRF token is fetched before login
-    await fetchCsrfToken();
     const response = await apiClient.post(API_ENDPOINTS.AUTH.LOGIN, { email, password });
     const { token, user } = response.data;
     // Store token in localStorage for tests
@@ -145,8 +152,6 @@ export const authApi = {
   },
   
   register: async (name: string, email: string, password: string) => {
-    // Ensure CSRF token is fetched before registration
-    await fetchCsrfToken();
     const response = await apiClient.post(API_ENDPOINTS.AUTH.REGISTER, { name, email, password });
     const { token, user } = response.data;
     // Store token in localStorage for tests
@@ -161,6 +166,8 @@ export const authApi = {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('token');
     }
+    // Clear CSRF token
+    clearCsrfToken();
     // Server will clear the httpOnly cookie
     await apiClient.post(API_ENDPOINTS.AUTH.LOGOUT);
   },
