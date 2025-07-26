@@ -22,7 +22,7 @@ export const getCookieOptions = (): CookieOptions => {
   return {
     httpOnly: true, // Prevent JavaScript access (XSS protection)
     secure: config.secureCookies, // HTTPS only in production
-    sameSite: config.nodeEnv === 'production' ? 'strict' : 'lax', // CSRF protection
+    sameSite: config.nodeEnv === 'production' ? 'none' : 'lax', // 'none' for cross-origin requests
     maxAge, // Cookie expiration time
     path: '/', // Cookie available for entire domain
     domain: config.cookieDomain, // Optional domain restriction
@@ -82,6 +82,8 @@ export const setCsrfCookie = (res: Response, csrfToken: string): void => {
   res.cookie('csrf-token', csrfToken, { 
     ...options, 
     httpOnly: false,
-    sameSite: config.nodeEnv === 'production' ? 'strict' : 'lax'
+    sameSite: config.nodeEnv === 'production' ? 'none' : 'lax', // 'none' for cross-origin requests
+    secure: config.nodeEnv === 'production', // Required when sameSite is 'none'
+    domain: config.cookieDomain || undefined // Set domain for subdomain sharing
   });
 };
