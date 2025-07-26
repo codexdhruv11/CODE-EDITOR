@@ -16,7 +16,7 @@ services:
       - key: JWT_SECRET
         generateValue: true # Generates a random secure string
       - key: CORS_ORIGIN
-        value: https://code-craft-frontend.onrender.com # Update with your frontend URL
+        value: https://code-editor-j5qq.onrender.com
     healthCheckPath: /api/health
     plan: free # or "starter" for paid plan
 
@@ -30,8 +30,8 @@ services:
     envVars:
       - key: NODE_ENV
         value: production
-      - key: REACT_APP_API_URL
-        value: https://code-craft-backend.onrender.com # Update with your backend URL
+      - key: NEXT_PUBLIC_API_URL
+        value: https://code-editor-backend-26a6.onrender.com/api
     healthCheckPath: /
     plan: free # or "starter" for paid plan
 
